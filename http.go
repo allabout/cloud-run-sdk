@@ -8,12 +8,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type IndexHandlerFunc func(w http.ResponseWriter, r *http.Request)
-
-func (fn IndexHandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fn(w, r)
-}
-
 type Adapter func(http.Handler) http.Handler
 
 func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
@@ -46,7 +40,7 @@ func InjectLogger(logger zerolog.Logger) Adapter {
 	}
 }
 
-func RegisterDefaultHTTPServer(fn IndexHandlerFunc, adapters ...Adapter) *http.Server {
+func RegisterDefaultHTTPServer(fn http.HandlerFunc, adapters ...Adapter) *http.Server {
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
 		port = p

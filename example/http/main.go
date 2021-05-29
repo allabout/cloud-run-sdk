@@ -17,7 +17,7 @@ import (
 func main() {
 	flag.Parse()
 
-	logger := zerolog.New(os.Stdout)
+	logger := sdk.SetLogger(zerolog.New(os.Stdout))
 
 	srv := sdk.RegisterDefaultHTTPServer(Run, sdk.InjectLogger(logger))
 	go func() {

@@ -14,7 +14,7 @@ func FetchURLByServiceName(ctx context.Context, name, region string) (string, er
 	}
 	c.BasePath = fmt.Sprintf("https://%s-run.googleapis.com/", region)
 
-	service, err := c.Namespaces.Services.Get(fmt.Sprintf("namespaces/%s/services/%s", ProjectID, name)).Do()
+	service, err := c.Namespaces.Services.Get(fmt.Sprintf("namespaces/%s/services/%s", projectID, name)).Do()
 	if err != nil {
 		return "", err
 	}

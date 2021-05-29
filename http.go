@@ -26,23 +26,19 @@ func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
 func InjectLogger(logger zerolog.Logger) Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if isCloudRun() {
-				logger = logger.With().Timestamp().Logger().Hook(sourceLocationHook)
-				r = r.WithContext(logger.WithContext(r.Context()))
+			r = r.WithContext(logger.WithContext(r.Context()))
 
+			if isCloudRun() {
 				traceID, _ := traceContextFromHeader(r.Header.Get("X-Cloud-Trace-Context"))
 				if traceID == "" {
 					h.ServeHTTP(w, r)
 					return
 				}
-				trace := fmt.Sprintf("projects/%s/traces/%s", ProjectID, traceID)
+				trace := fmt.Sprintf("projects/%s/traces/%s", projectID, traceID)
 
 				logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
 					return c.Str("logging.googleapis.com/trace", trace)
 				})
-			} else {
-				logger = logger.With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: os.Stderr})
-				r = r.WithContext(logger.WithContext(r.Context()))
 			}
 
 			h.ServeHTTP(w, r)

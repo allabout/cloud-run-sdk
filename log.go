@@ -19,11 +19,15 @@ var (
 	// CallerSkipFrameCount is the number of stack frames to skip to find the caller.
 	CallerSkipFrameCount = 3
 
-	ProjectID          string
+	projectID          string
 	sourceLocationHook = &callerHook{}
 	// For trace header, see https://cloud.google.com/trace/docs/troubleshooting#force-trace
 	traceHeaderRegExp = regexp.MustCompile(`^\s*([0-9a-fA-F]+)(?:/(\d+))?(?:;o=[01])?\s*$`)
 )
+
+func GetProjectID() string {
+	return projectID
+}
 
 func init() {
 	if isCloudRun() {
@@ -36,9 +40,9 @@ func init() {
 		if err != nil {
 			log.Fatalf("Failed to fetch mandatory project ID: %v", err)
 		}
-		ProjectID = id
+		projectID = id
 	} else {
-		ProjectID = fetchProjectIDFromEnv()
+		projectID = getProjectIDFromEnv()
 	}
 }
 
@@ -65,6 +69,13 @@ func LevelFieldMarshalFunc(l zerolog.Level) string {
 	default:
 		return "DEFAULT"
 	}
+}
+
+func SetLogger(logger zerolog.Logger) zerolog.Logger {
+	if isCloudRun() {
+		return logger.With().Timestamp().Logger().Hook(sourceLocationHook)
+	}
+	return logger.With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: os.Stderr})
 }
 
 // callerHook implements zerolog.Hook interface.
@@ -106,7 +117,7 @@ func fetchProjectIDFromMetadata() (string, error) {
 	return string(b), nil
 }
 
-func fetchProjectIDFromEnv() string {
+func getProjectIDFromEnv() string {
 	return os.Getenv("GOOGLE_CLOUD_PROJECT")
 }
 

@@ -37,7 +37,7 @@ func InjectLoggerInterceptor(rootLogger *zerolog.Logger) grpc.UnaryServerInterce
 			if traceID == "" {
 				return handler(ctx, req)
 			}
-			trace := fmt.Sprintf("projects/%s/traces/%s", ProjectID, traceID)
+			trace := fmt.Sprintf("projects/%s/traces/%s", projectID, traceID)
 
 			l.UpdateContext(func(c zerolog.Context) zerolog.Context {
 				return c.Str("logging.googleapis.com/trace", trace)

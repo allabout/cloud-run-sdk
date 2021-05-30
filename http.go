@@ -11,10 +11,18 @@ import (
 type Adapter func(http.Handler) http.Handler
 
 func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
-	for _, adapter := range adapters {
+	for _, adapter := range reverseAdapters(adapters...) {
 		h = adapter(h)
 	}
 	return h
+}
+
+func reverseAdapters(adapters ...Adapter) []Adapter {
+	for i := len(adapters)/2 - 1; i >= 0; i-- {
+		opp := len(adapters) - 1 - i
+		adapters[i], adapters[opp] = adapters[opp], adapters[i]
+	}
+	return adapters
 }
 
 func InjectLogger(logger zerolog.Logger, debug bool) Adapter {

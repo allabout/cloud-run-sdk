@@ -26,12 +26,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var (
+	debugFlag = flag.Bool("debug", false, "debug mode")
+)
+
 func main() {
 	flag.Parse()
 
 	logger := sdk.SetLogger(zerolog.New(os.Stdout))
 
-	srv := sdk.RegisterDefaultHTTPServer(Run, sdk.InjectLogger(logger))
+	srv := sdk.RegisterDefaultHTTPServer(Run, sdk.InjectLogger(logger, *debugFlag))
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			logger.Error().Msgf("server closed with error : %v", err)
@@ -56,5 +60,6 @@ func main() {
 func Run(w http.ResponseWriter, r *http.Request) {
 	logger := log.Ctx(r.Context())
 	logger.Debug().Msg("hello world")
+	logger.Info().Msg("hello world")
 }
 ```

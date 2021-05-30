@@ -17,9 +17,14 @@ func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
 	return h
 }
 
-func InjectLogger(logger zerolog.Logger) Adapter {
+func InjectLogger(logger zerolog.Logger, debug bool) Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+			if debug {
+				zerolog.SetGlobalLevel(zerolog.DebugLevel)
+			}
+
 			r = r.WithContext(logger.WithContext(r.Context()))
 
 			if isCloudRun() {

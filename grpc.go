@@ -60,7 +60,22 @@ func InjectClientAuthInterceptor(idToken string) grpc.UnaryClientInterceptor {
 	}
 }
 
-func NewTLSConn(addr string) (*grpc.ClientConn, error) {
+func NewConn(addr string, localhost bool) (*grpc.ClientConn, error) {
+	if localhost {
+		conn, err := grpc.Dial(
+			addr,
+			grpc.WithInsecure(),
+		)
+		if err != nil {
+			return nil, err
+		}
+		return conn, nil
+	}
+
+	return newTLSConn(addr)
+}
+
+func newTLSConn(addr string) (*grpc.ClientConn, error) {
 	systemRoots, err := x509.SystemCertPool()
 	if err != nil {
 		return nil, err

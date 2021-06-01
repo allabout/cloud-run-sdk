@@ -53,7 +53,7 @@ func InjectLogger(logger zerolog.Logger, debug bool) Adapter {
 	}
 }
 
-func RegisterDefaultHTTPServer(fn http.HandlerFunc, adapters ...Adapter) *http.Server {
+func RegisterHTTPServer(path string, fn http.HandlerFunc, adapters ...Adapter) *http.Server {
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
@@ -65,7 +65,7 @@ func RegisterDefaultHTTPServer(fn http.HandlerFunc, adapters ...Adapter) *http.S
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/", Adapt(fn, adapters...))
+	mux.Handle(path, Adapt(fn, adapters...))
 
 	return &http.Server{
 		Addr:    fmt.Sprintf("%s:%s", hostAddr, port),

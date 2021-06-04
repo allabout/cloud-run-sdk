@@ -1,23 +1,112 @@
 package sdk
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	z "github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-type Adapter func(http.Handler) http.Handler
+type AppHandlerFunc func(w http.ResponseWriter, r *http.Request) error
 
-func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
-	for _, adapter := range adapters {
-		h = adapter(h)
+type ErrorHandlerFunc func(fn AppHandlerFunc) http.Handler
+
+func defaultErrorHandler(fn AppHandlerFunc) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := log.Ctx(r.Context())
+
+		if err := fn(w, r); err != nil {
+			logger.Error().Msgf("%v", err)
+		}
+
+		w.Write([]byte("done"))
+	})
+}
+
+type Middleware func(http.Handler) http.Handler
+
+func Chain(h http.Handler, middlewares ...Middleware) http.Handler {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		h = middlewares[i](h)
 	}
 	return h
 }
 
-func InjectLogger(logger zerolog.Logger, debug bool) Adapter {
+func RegisterDefaultHTTPServer(debug bool, fn AppHandlerFunc, errFn ErrorHandlerFunc, middlewares ...Middleware) (*Server, error) {
+	logger := z.SetLogger(IsCloudRun())
+
+	projectID, err := FetchProjectID()
+	if err != nil {
+		return nil, err
+	}
+
+	middlewares = append(middlewares, InjectLogger(logger, projectID, debug))
+
+	if errFn == nil {
+		return RegisterHTTPServer("/", logger, Chain(defaultErrorHandler(fn), middlewares...)), nil
+	}
+
+	return RegisterHTTPServer("/", logger, Chain(errFn(fn), middlewares...)), nil
+}
+
+func RegisterHTTPServer(path string, logger zerolog.Logger, handler http.Handler) *Server {
+	port := "8080"
+	if p := os.Getenv("PORT"); p != "" {
+		port = p
+	}
+
+	hostAddr := "0.0.0.0"
+	if h := os.Getenv("HOST_ADDR"); h != "" {
+		hostAddr = h
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+
+	return &Server{
+		logger: logger,
+		srv: &http.Server{
+			Addr:    hostAddr + ":" + port,
+			Handler: mux,
+		},
+	}
+}
+
+type Server struct {
+	logger zerolog.Logger
+	srv    *http.Server
+}
+
+func (s *Server) StartAndTerminateWithSignal() {
+	go func() {
+		if err := s.srv.ListenAndServe(); err != http.ErrServerClosed {
+			s.logger.Error().Msgf("server closed with error : %v", err)
+		}
+	}()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+
+	<-sigCh
+	s.logger.Info().Msg("recive SIGTERM or SIGINT")
+
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+
+	if err := s.srv.Shutdown(ctx); err != nil {
+		s.logger.Error().Msgf("failed to shutdown HTTP Server : %v", err)
+	}
+
+	s.logger.Info().Msg("HTTP Server shutdowned")
+}
+
+func InjectLogger(logger zerolog.Logger, projectID string, debug bool) Middleware {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -27,8 +116,8 @@ func InjectLogger(logger zerolog.Logger, debug bool) Adapter {
 
 			r = r.WithContext(logger.WithContext(r.Context()))
 
-			if isCloudRun() {
-				traceID, _ := traceContextFromHeader(r.Header.Get("X-Cloud-Trace-Context"))
+			if IsCloudRun() {
+				traceID, _ := z.TraceContextFromHeader(r.Header.Get("X-Cloud-Trace-Context"))
 				if traceID == "" {
 					h.ServeHTTP(w, r)
 					return
@@ -42,25 +131,5 @@ func InjectLogger(logger zerolog.Logger, debug bool) Adapter {
 
 			h.ServeHTTP(w, r)
 		})
-	}
-}
-
-func RegisterDefaultHTTPServer(fn http.HandlerFunc, adapters ...Adapter) *http.Server {
-	port := "8080"
-	if p := os.Getenv("PORT"); p != "" {
-		port = p
-	}
-
-	hostAddr := "0.0.0.0"
-	if h := os.Getenv("HOST_ADDR"); h != "" {
-		hostAddr = h
-	}
-
-	mux := http.NewServeMux()
-	mux.Handle("/", Adapt(fn, adapters...))
-
-	return &http.Server{
-		Addr:    fmt.Sprintf("%s:%s", hostAddr, port),
-		Handler: mux,
 	}
 }

@@ -1,47 +1,44 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	sdk "github.com/ishii1648/cloud-run-sdk"
-	"github.com/rs/zerolog"
+	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/rs/zerolog/log"
+)
+
+var (
+	debugFlag = flag.Bool("debug", false, "debug mode")
 )
 
 func main() {
 	flag.Parse()
 
-	logger := sdk.SetLogger(zerolog.New(os.Stdout))
-
-	srv := sdk.RegisterDefaultHTTPServer(Run, sdk.InjectLogger(logger))
-	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			logger.Error().Msgf("server closed with error : %v", err)
-		}
-	}()
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
-
-	<-sigCh
-	logger.Info().Msg("recive SIGTERM or SIGINT")
-
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error().Msgf("failed to shutdown HTTP Server : %v", err)
+	srv, err := sdk.RegisterDefaultHTTPServer(*debugFlag, Run, nil, InjectTest())
+	if err != nil {
+		log.Error().Msgf("failed to register http server : %v", err)
+		return
 	}
 
-	logger.Info().Msg("HTTP Server shutdowned")
+	srv.StartAndTerminateWithSignal()
 }
 
-func Run(w http.ResponseWriter, r *http.Request) {
-	logger := log.Ctx(r.Context())
-	logger.Debug().Msg("hello world")
+func InjectTest() sdk.Middleware {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger := log.Ctx(r.Context())
+			logger.Debug().Msg("InjectTest")
+			h.ServeHTTP(w, r)
+		})
+	}
+}
+
+func Run(w http.ResponseWriter, r *http.Request) error {
+	logger := zerolog.NewLogger(log.Ctx(r.Context()))
+	logger.Debug("debug message")
+	logger.Info("info message")
+
+	return nil
 }

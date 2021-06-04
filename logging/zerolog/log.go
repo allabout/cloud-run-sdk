@@ -9,7 +9,7 @@ import (
 )
 
 type Logger struct {
-	logger zerolog.Logger
+	logger *zerolog.Logger
 }
 
 func SetLogger(cloudrun bool) zerolog.Logger {
@@ -26,7 +26,7 @@ func SetLogger(cloudrun bool) zerolog.Logger {
 	return logger.With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: os.Stderr})
 }
 
-func NewLogger(logger zerolog.Logger) Logger {
+func NewLogger(logger *zerolog.Logger) Logger {
 	return Logger{
 		logger: logger,
 	}

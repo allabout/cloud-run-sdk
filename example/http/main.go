@@ -4,7 +4,7 @@ import (
 	"flag"
 	"net/http"
 
-	sdk "github.com/ishii1648/cloud-run-sdk"
+	_http "github.com/ishii1648/cloud-run-sdk/http"
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -16,7 +16,7 @@ var (
 func main() {
 	flag.Parse()
 
-	srv, err := sdk.RegisterDefaultHTTPServer(*debugFlag, Run, nil, InjectTest())
+	srv, err := _http.RegisterDefaultHTTPServer(*debugFlag, Run, nil, InjectTest())
 	if err != nil {
 		log.Error().Msgf("failed to register http server : %v", err)
 		return
@@ -25,7 +25,7 @@ func main() {
 	srv.StartAndTerminateWithSignal()
 }
 
-func InjectTest() sdk.Middleware {
+func InjectTest() _http.Middleware {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := log.Ctx(r.Context())
@@ -39,6 +39,7 @@ func Run(w http.ResponseWriter, r *http.Request) error {
 	logger := zerolog.NewLogger(log.Ctx(r.Context()))
 	logger.Debug("debug message")
 	logger.Info("info message")
+	logger.Infof("X-Cloud-Trace-Context :%s", r.Header.Get("X-Cloud-Trace-Context"))
 
 	return nil
 }

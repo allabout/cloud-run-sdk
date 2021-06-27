@@ -2,45 +2,48 @@ package zerolog
 
 import (
 	"fmt"
-	"os"
+	"io"
 	"time"
 
-	"github.com/ishii1648/cloud-run-sdk/util"
 	"github.com/rs/zerolog"
 )
 
+var log Logger
+
 type Logger struct {
-	logger *zerolog.Logger
+	logger zerolog.Logger
 }
 
-func SetLogger(debug bool) zerolog.Logger {
+func SetLogger(w io.Writer, debug, isCloudRun bool) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if debug {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
-	logger := zerolog.New(os.Stdout)
+	log.logger = zerolog.New(w)
 
-	if util.IsCloudRun() {
+	if isCloudRun {
 		zerolog.TimeFieldFormat = time.RFC3339Nano
 		zerolog.LevelFieldName = "severity"
 		zerolog.LevelFieldMarshalFunc = LevelFieldMarshalFunc
 
-		return logger.With().Timestamp().Logger().Hook(&CallerHook{})
+		log.logger = log.logger.With().Logger().Hook(&CallerHook{})
+		return
 	}
 
-	return logger.With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.logger = log.logger.With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: w})
 }
 
-func NewLogger(logger *zerolog.Logger) Logger {
-	return Logger{
-		logger: logger,
-	}
+// just wrap func of zerolog's UpdateContext
+func UpdateContext(key, value string) {
+	log.logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
+		return c.Str(key, value)
+	})
 }
 
+// mapping to Cloud Logging LogSeverity
+// see. https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#LogSeverity
 func LevelFieldMarshalFunc(l zerolog.Level) string {
-	// mapping to Cloud Logging LogSeverity
-	// https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#LogSeverity
 	switch l {
 	case zerolog.DebugLevel:
 		return "DEBUG"
@@ -53,26 +56,26 @@ func LevelFieldMarshalFunc(l zerolog.Level) string {
 	}
 }
 
-func (l Logger) Debug(args ...interface{}) {
-	l.logger.Debug().Msg(fmt.Sprint(args...))
+func Debug(args ...interface{}) {
+	log.logger.Debug().Msg(fmt.Sprint(args...))
 }
 
-func (l Logger) Debugf(format string, args ...interface{}) {
-	l.logger.Debug().Msgf(format, args...)
+func Debugf(format string, args ...interface{}) {
+	log.logger.Debug().Msgf(format, args...)
 }
 
-func (l Logger) Info(args ...interface{}) {
-	l.logger.Info().Msg(fmt.Sprint(args...))
+func Info(args ...interface{}) {
+	log.logger.Info().Msg(fmt.Sprint(args...))
 }
 
-func (l Logger) Infof(format string, args ...interface{}) {
-	l.logger.Info().Msgf(format, args...)
+func Infof(format string, args ...interface{}) {
+	log.logger.Info().Msgf(format, args...)
 }
 
-func (l Logger) Error(args ...interface{}) {
-	l.logger.Error().Msg(fmt.Sprint(args...))
+func Error(args ...interface{}) {
+	log.logger.Error().Msg(fmt.Sprint(args...))
 }
 
-func (l Logger) Errorf(format string, args ...interface{}) {
-	l.logger.Error().Msgf(format, args...)
+func Errorf(format string, args ...interface{}) {
+	log.logger.Error().Msgf(format, args...)
 }

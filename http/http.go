@@ -1,4 +1,4 @@
-package sdk
+package http
 
 import (
 	"context"
@@ -9,7 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	z "github.com/ishii1648/cloud-run-sdk/logging/zerolog"
+	_zerolog "github.com/ishii1648/cloud-run-sdk/logging/zerolog"
+	"github.com/ishii1648/cloud-run-sdk/util"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -40,14 +41,14 @@ func Chain(h http.Handler, middlewares ...Middleware) http.Handler {
 }
 
 func RegisterDefaultHTTPServer(debug bool, fn AppHandlerFunc, errFn ErrorHandlerFunc, middlewares ...Middleware) (*Server, error) {
-	logger := z.SetLogger(IsCloudRun())
+	logger := _zerolog.SetLogger(debug)
 
-	projectID, err := FetchProjectID()
+	projectID, err := util.FetchProjectID()
 	if err != nil {
 		return nil, err
 	}
 
-	middlewares = append(middlewares, InjectLogger(logger, projectID, debug))
+	middlewares = append(middlewares, InjectLogger(logger, projectID))
 
 	if errFn == nil {
 		return RegisterHTTPServer("/", logger, Chain(defaultErrorHandler(fn), middlewares...)), nil
@@ -106,18 +107,13 @@ func (s *Server) StartAndTerminateWithSignal() {
 	s.logger.Info().Msg("HTTP Server shutdowned")
 }
 
-func InjectLogger(logger zerolog.Logger, projectID string, debug bool) Middleware {
+func InjectLogger(logger zerolog.Logger, projectID string) Middleware {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			zerolog.SetGlobalLevel(zerolog.InfoLevel)
-			if debug {
-				zerolog.SetGlobalLevel(zerolog.DebugLevel)
-			}
-
 			r = r.WithContext(logger.WithContext(r.Context()))
 
-			if IsCloudRun() {
-				traceID, _ := z.TraceContextFromHeader(r.Header.Get("X-Cloud-Trace-Context"))
+			if util.IsCloudRun() {
+				traceID, _ := _zerolog.TraceContextFromHeader(r.Header.Get("X-Cloud-Trace-Context"))
 				if traceID == "" {
 					h.ServeHTTP(w, r)
 					return

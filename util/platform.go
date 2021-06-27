@@ -1,4 +1,4 @@
-package sdk
+package util
 
 import (
 	"context"
@@ -30,10 +30,13 @@ func FetchURLByServiceName(ctx context.Context, name, region string) (string, er
 	return service.Status.Url, nil
 }
 
+// check first env value of GOOGLE_CLOUD_PROJECT for local debug
 func FetchProjectID() (string, error) {
-	if !IsCloudRun() {
-		return os.Getenv("GOOGLE_CLOUD_PROJECT"), nil
+	projectID, isSet := os.LookupEnv("GOOGLE_CLOUD_PROJECT")
+	if isSet {
+		return projectID, nil
 	}
+
 	req, err := http.NewRequest("GET",
 		"http://metadata.google.internal/computeMetadata/v1/project/project-id", nil)
 	if err != nil {

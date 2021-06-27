@@ -6,20 +6,20 @@ import (
 	"os"
 	"time"
 
-	sdk "github.com/ishii1648/cloud-run-sdk"
 	pb "github.com/ishii1648/cloud-run-sdk/example/grpc/proto"
 	"github.com/ishii1648/cloud-run-sdk/grpc"
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 )
 
 var (
-	message = flag.String("message", "hello world", "spacify a message")
+	debugFlag = flag.Bool("debug", false, "debug mode")
+	message   = flag.String("message", "hello world", "spacify a message")
 )
 
 func main() {
 	flag.Parse()
 
-	logger := zerolog.SetLogger(sdk.IsCloudRun())
+	logger := zerolog.SetLogger(*debugFlag)
 
 	port := "8080"
 	if fromEnv := os.Getenv("GRPC_PORT"); fromEnv != "" {

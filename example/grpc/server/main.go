@@ -4,10 +4,10 @@ import (
 	"context"
 	"flag"
 
-	sdk "github.com/ishii1648/cloud-run-sdk"
 	pb "github.com/ishii1648/cloud-run-sdk/example/grpc/proto"
 	"github.com/ishii1648/cloud-run-sdk/grpc"
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
+	"github.com/ishii1648/cloud-run-sdk/util"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -36,9 +36,9 @@ func (s *server) Echo(ctx context.Context, r *pb.EchoRequest) (*pb.EchoReply, er
 func main() {
 	flag.Parse()
 
-	logger := zerolog.SetLogger(sdk.IsCloudRun())
+	logger := zerolog.SetLogger(*debugFlag)
 
-	projectID, err := sdk.FetchProjectID()
+	projectID, err := util.FetchProjectID()
 	if err != nil {
 		logger.Error().Msgf("failed to fetch project ID")
 		return

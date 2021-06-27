@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	sdk "github.com/ishii1648/cloud-run-sdk"
 	_zerolog "github.com/ishii1648/cloud-run-sdk/logging/zerolog"
+	"github.com/ishii1648/cloud-run-sdk/util"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -21,7 +21,7 @@ func LoggerInterceptor(logger *zerolog.Logger, projectID string, debug bool) grp
 
 		ctx = logger.WithContext(ctx)
 
-		if sdk.IsCloudRun() {
+		if util.IsCloudRun() {
 			md, ok := metadata.FromIncomingContext(ctx)
 			if !ok {
 				return handler(ctx, req)

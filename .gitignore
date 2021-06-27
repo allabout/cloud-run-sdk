@@ -1,2 +1,3 @@
 example/http/http
 go.sum
+coverage.txt

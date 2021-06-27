@@ -1,4 +1,4 @@
-package zerolog
+package util
 
 import (
 	"testing"

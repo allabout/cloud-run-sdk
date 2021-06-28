@@ -7,8 +7,9 @@ import (
 	"time"
 
 	pb "github.com/ishii1648/cloud-run-sdk/example/grpc/proto"
-	"github.com/ishii1648/cloud-run-sdk/grpc"
-	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
+	cgrpc "github.com/ishii1648/cloud-run-sdk/grpc"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/metadata"
 )
 
 var (
@@ -18,8 +19,6 @@ var (
 
 func main() {
 	flag.Parse()
-
-	logger := zerolog.SetLogger(*debugFlag)
 
 	port := "8080"
 	if fromEnv := os.Getenv("GRPC_PORT"); fromEnv != "" {
@@ -31,9 +30,9 @@ func main() {
 		hostAddr = h
 	}
 
-	conn, err := grpc.NewConn(hostAddr+":"+port, true)
+	conn, err := cgrpc.NewConn(hostAddr+":"+port, true)
 	if err != nil {
-		logger.Error().Msgf("failed to new connection : %v", err)
+		log.Error().Msgf("failed to new connection : %v", err)
 		return
 	}
 
@@ -42,11 +41,23 @@ func main() {
 
 	c := pb.NewHelloClient(conn)
 
+	// first time
+	md := metadata.New(map[string]string{"x-cloud-trace-context": "0123456789abcdef0123456789abcdef/123;o=1"})
+	ctx = metadata.NewOutgoingContext(ctx, md)
 	res, err := c.Echo(ctx, &pb.EchoRequest{Msg: *message})
 	if err != nil {
-		logger.Error().Msgf("failed to call Echo : %v", err)
+		log.Error().Msgf("failed to call Echo : %v", err)
 		return
 	}
 
-	logger.Info().Msgf("success to call Echo (res : %s)", res.Msg)
+	// second time
+	md = metadata.New(map[string]string{"x-cloud-trace-context": "0123456789abcdef0123456789/123;o=1"})
+	ctx = metadata.NewOutgoingContext(ctx, md)
+	res, err = c.Echo(ctx, &pb.EchoRequest{Msg: *message})
+	if err != nil {
+		log.Error().Msgf("failed to call Echo : %v", err)
+		return
+	}
+
+	log.Info().Msgf("success to call Echo (res : %s)", res.Msg)
 }

@@ -19,7 +19,7 @@ type ErrorHandlerFunc func(fn AppHandlerFunc) http.Handler
 
 func defaultErrorHandler(fn AppHandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := clog.NewLogger(log.Ctx(r.Context()))
+		logger := clog.NewRequestLogger(log.Ctx(r.Context()))
 
 		if err := fn(w, r); err != nil {
 			logger.Errorf("%v", err)

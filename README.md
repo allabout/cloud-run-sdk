@@ -48,7 +48,7 @@ func InjectTest() sdk.Middleware {
 }
 
 func Run(w http.ResponseWriter, r *http.Request) error {
-	logger := zerolog.NewLogger(log.Ctx(r.Context()))
+	logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
 	logger.Debug("debug message")
 	logger.Info("info message")
 

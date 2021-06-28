@@ -1,3 +1,4 @@
 example/http/http
 go.sum
 coverage.txt
+profile.out

@@ -6,14 +6,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
-// func RegisterDefaultGRPCServer() (*grpc.Server, net.Listener, error) {}
-
-func RegisterGRPCServer(logger zerolog.Logger, debug bool, projectID string, interceptors ...grpc.UnaryServerInterceptor) (*grpc.Server, net.Listener, error) {
+func RegisterGRPCServer(debug bool, projectID string, interceptors ...grpc.UnaryServerInterceptor) (*grpc.Server, net.Listener, error) {
 	port := "8080"
 	if fromEnv := os.Getenv("GRPC_PORT"); fromEnv != "" {
 		port = fromEnv
@@ -35,10 +33,10 @@ func RegisterGRPCServer(logger zerolog.Logger, debug bool, projectID string, int
 	return srv, l, nil
 }
 
-func StartAndTerminateWithSignal(logger zerolog.Logger, srv *grpc.Server, l net.Listener) {
+func StartAndTerminateWithSignal(srv *grpc.Server, l net.Listener) {
 	go func() {
 		if err := srv.Serve(l); err != nil {
-			logger.Error().Msgf("server closed with error : %v", err)
+			log.Error().Msgf("server closed with error : %v", err)
 		}
 	}()
 
@@ -46,8 +44,8 @@ func StartAndTerminateWithSignal(logger zerolog.Logger, srv *grpc.Server, l net.
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 	<-sigCh
-	logger.Info().Msg("recive SIGTERM or SIGINT")
+	log.Info().Msg("recive SIGTERM or SIGINT")
 
 	srv.GracefulStop()
-	logger.Info().Msg("gRPC Server shutdowned")
+	log.Info().Msg("gRPC Server shutdowned")
 }

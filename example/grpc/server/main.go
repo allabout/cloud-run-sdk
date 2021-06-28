@@ -22,7 +22,7 @@ type server struct {
 }
 
 func (s *server) Echo(ctx context.Context, r *pb.EchoRequest) (*pb.EchoReply, error) {
-	logger := zerolog.NewLogger(log.Ctx(ctx))
+	logger := zerolog.NewRequestLogger(log.Ctx(ctx))
 
 	logger.Infof("receive message : %s", r.Msg)
 
@@ -36,19 +36,17 @@ func (s *server) Echo(ctx context.Context, r *pb.EchoRequest) (*pb.EchoReply, er
 func main() {
 	flag.Parse()
 
-	logger := zerolog.SetLogger(*debugFlag)
-
 	projectID, err := util.FetchProjectID()
 	if err != nil {
-		logger.Error().Msgf("failed to fetch project ID")
+		log.Error().Msgf("failed to fetch project ID")
 		return
 	}
 
-	srv, l, err := grpc.RegisterGRPCServer(logger, *debugFlag, projectID, grpc.LoggerInterceptor(&logger, projectID, *debugFlag), grpc.ErrorHandlerInterceptor())
+	srv, l, err := grpc.RegisterGRPCServer(*debugFlag, projectID, grpc.LoggerInterceptor(projectID, util.IsCloudRun(), *debugFlag), grpc.ErrorHandlerInterceptor())
 	if err != nil {
 		log.Error().Msgf("failed to register gRPC server : %v", err)
 	}
 
 	pb.RegisterHelloServer(srv, &server{})
-	grpc.StartAndTerminateWithSignal(logger, srv, l)
+	grpc.StartAndTerminateWithSignal(srv, l)
 }

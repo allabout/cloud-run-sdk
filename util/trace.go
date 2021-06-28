@@ -1,9 +1,10 @@
 package util
 
 import (
-	"fmt"
+	"context"
 	"regexp"
-	"strconv"
+
+	"google.golang.org/grpc/metadata"
 )
 
 var (
@@ -11,23 +12,30 @@ var (
 	traceHeaderRegExp = regexp.MustCompile(`^\s*([0-9a-fA-F]+)(?:/(\d+))?(?:;o=[01])?\s*$`)
 )
 
-func TraceContextFromHeader(header string) (string, string) {
+func GetTraceIDFromHeader(header string) string {
 	matched := traceHeaderRegExp.FindStringSubmatch(header)
 	if len(matched) < 3 {
-		return "", ""
+		return ""
 	}
 
-	traceID, spanID := matched[1], matched[2]
-	if spanID == "" {
-		return traceID, ""
+	return matched[1]
+}
+
+func GetTraceIDFromMetadata(ctx context.Context) string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ""
 	}
-	spanIDInt, err := strconv.ParseUint(spanID, 10, 64)
-	if err != nil {
-		// invalid
-		return "", ""
+
+	values := md.Get("x-cloud-trace-context")
+	if len(values) != 1 {
+		return ""
 	}
-	// spanId for cloud logging must be 16-character hexadecimal number.
-	// See: https://cloud.google.com/trace/docs/trace-log-integration#associating
-	spanIDHex := fmt.Sprintf("%016x", spanIDInt)
-	return traceID, spanIDHex
+
+	matched := traceHeaderRegExp.FindStringSubmatch(values[0])
+	if len(matched) < 3 {
+		return ""
+	}
+
+	return matched[1]
 }

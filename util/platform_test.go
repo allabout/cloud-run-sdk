@@ -6,35 +6,30 @@ import (
 	"net/http"
 	"os"
 	"testing"
+
+	"google.golang.org/api/googleapi"
+	"google.golang.org/api/run/v1"
 )
 
-var (
-	// GetDoFunc fetches the mock client's `Do` func
-	GetDoFunc func(req *http.Request) (*http.Response, error)
-)
-
-type MockClient struct {
+type MockHTTPClient struct {
 	DoFunc func(req *http.Request) (*http.Response, error)
 }
 
-func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
-	return GetDoFunc(req)
-}
-
-func TestMain(m *testing.M) {
-	Client = &MockClient{}
-	os.Exit(m.Run())
+func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	return m.DoFunc(req)
 }
 
 func TestFetchProjectID(t *testing.T) {
 	wantProjectID := "sample-project-id"
 
-	GetDoFunc = func(*http.Request) (*http.Response, error) {
-		r := ioutil.NopCloser((bytes.NewReader([]byte(wantProjectID))))
-		return &http.Response{
-			StatusCode: 200,
-			Body:       r,
-		}, nil
+	httpClient = &MockHTTPClient{
+		DoFunc: func(*http.Request) (*http.Response, error) {
+			r := ioutil.NopCloser((bytes.NewReader([]byte(wantProjectID))))
+			return &http.Response{
+				StatusCode: 200,
+				Body:       r,
+			}, nil
+		},
 	}
 
 	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", wantProjectID); err != nil {
@@ -60,6 +55,35 @@ func TestFetchProjectID(t *testing.T) {
 	}
 
 	if want, got := wantProjectID, projectID; want != got {
-		t.Errorf("wrong request %q, want %q", got, want)
+		t.Errorf("wrong response %s, want %s", got, want)
+	}
+}
+
+type MockServiceCallClient struct {
+	DoFunc func(opts ...googleapi.CallOption) (*run.Service, error)
+}
+
+func (m *MockServiceCallClient) Do(opts ...googleapi.CallOption) (*run.Service, error) {
+	return m.DoFunc(opts...)
+}
+
+func TestFetchServiceURL(t *testing.T) {
+	wantURL := "http://dummy.com"
+
+	serviceCallClient = &MockServiceCallClient{
+		DoFunc: func(opts ...googleapi.CallOption) (*run.Service, error) {
+			return &run.Service{
+				Status: &run.ServiceStatus{Url: wantURL},
+			}, nil
+		},
+	}
+
+	url, err := fetchServiceURL(serviceCallClient)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := wantURL, url; wantURL != url {
+		t.Errorf("wrong response %s, want %s", got, want)
 	}
 }

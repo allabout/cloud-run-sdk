@@ -7,32 +7,40 @@ import (
 	"net/http"
 	"os"
 
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/run/v1"
 )
 
-var Client HTTPClient
+var (
+	httpClient        HTTPClient
+	serviceCallClient ServiceCallClient
+)
 
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func init() {
-	Client = http.DefaultClient
+type ServiceCallClient interface {
+	Do(opts ...googleapi.CallOption) (*run.Service, error)
 }
 
-func FetchURLByServiceName(ctx context.Context, name, region string) (string, error) {
+func init() {
+	httpClient = http.DefaultClient
+}
+
+func FetchURLByServiceName(ctx context.Context, name, region, projectID string) (string, error) {
 	c, err := run.NewService(ctx)
 	if err != nil {
 		return "", err
 	}
 	c.BasePath = fmt.Sprintf("https://%s-run.googleapis.com/", region)
 
-	projectID, err := FetchProjectID()
-	if err != nil {
-		return "", err
-	}
+	return fetchServiceURL(
+		c.Namespaces.Services.Get(fmt.Sprintf("namespaces/%s/services/%s", projectID, name)))
+}
 
-	service, err := c.Namespaces.Services.Get(fmt.Sprintf("namespaces/%s/services/%s", projectID, name)).Do()
+func fetchServiceURL(serviceCallClient ServiceCallClient) (string, error) {
+	service, err := serviceCallClient.Do()
 	if err != nil {
 		return "", err
 	}
@@ -54,7 +62,7 @@ func FetchProjectID() (string, error) {
 	}
 	req.Header.Add("Metadata-Flavor", "Google")
 
-	resp, err := Client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -64,6 +72,7 @@ func FetchProjectID() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(b), nil
 }
 

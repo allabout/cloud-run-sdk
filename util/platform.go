@@ -10,6 +10,16 @@ import (
 	"google.golang.org/api/run/v1"
 )
 
+var Client HTTPClient
+
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+func init() {
+	Client = http.DefaultClient
+}
+
 func FetchURLByServiceName(ctx context.Context, name, region string) (string, error) {
 	c, err := run.NewService(ctx)
 	if err != nil {
@@ -37,14 +47,14 @@ func FetchProjectID() (string, error) {
 		return projectID, nil
 	}
 
-	req, err := http.NewRequest("GET",
+	req, err := http.NewRequest(http.MethodGet,
 		"http://metadata.google.internal/computeMetadata/v1/project/project-id", nil)
 	if err != nil {
 		return "", err
 	}
-
 	req.Header.Add("Metadata-Flavor", "Google")
-	resp, err := http.DefaultClient.Do(req)
+
+	resp, err := Client.Do(req)
 	if err != nil {
 		return "", err
 	}

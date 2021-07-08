@@ -5,10 +5,11 @@ import (
 	"io"
 	"time"
 
+	"github.com/ishii1648/cloud-run-sdk/util"
 	"github.com/rs/zerolog"
 )
 
-func SetLogger(w io.Writer, debug, isCloudRun, isSourceLocation bool) zerolog.Logger {
+func SetLogger(w io.Writer, debug, isSourceLocation bool) zerolog.Logger {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if debug {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -16,7 +17,7 @@ func SetLogger(w io.Writer, debug, isCloudRun, isSourceLocation bool) zerolog.Lo
 
 	logger := zerolog.New(w)
 
-	if isCloudRun {
+	if util.IsCloudRun() {
 		zerolog.TimeFieldFormat = time.RFC3339Nano
 		zerolog.LevelFieldName = "severity"
 		zerolog.LevelFieldMarshalFunc = LevelFieldMarshalFunc

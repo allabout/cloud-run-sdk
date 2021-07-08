@@ -4,22 +4,23 @@ import (
 	"context"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
-	clog "github.com/ishii1648/cloud-run-sdk/logging/zerolog"
+	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/ishii1648/cloud-run-sdk/util"
+	pkgzerolog "github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
+
+var server *http.Server
 
 type AppHandlerFunc func(w http.ResponseWriter, r *http.Request) error
 
 type ErrorHandlerFunc func(fn AppHandlerFunc) http.Handler
 
-func defaultErrorHandler(fn AppHandlerFunc) http.Handler {
+func DefaultErrorHandler(fn AppHandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := clog.NewRequestLogger(log.Ctx(r.Context()))
+		logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
 
 		if err := fn(w, r); err != nil {
 			logger.Errorf("%v", err)
@@ -29,22 +30,23 @@ func defaultErrorHandler(fn AppHandlerFunc) http.Handler {
 	})
 }
 
-func RegisterDefaultHTTPServer(debug bool, fn AppHandlerFunc, errFn ErrorHandlerFunc, middlewares ...Middleware) (*http.Server, error) {
+func RegisterDefaultHTTPServer(rootLogger *pkgzerolog.Logger, fn AppHandlerFunc, errFn ErrorHandlerFunc, middlewares ...Middleware) error {
 	projectID, err := util.FetchProjectID()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	middlewares = append(middlewares, InjectLogger(projectID, util.IsCloudRun(), debug))
+	middlewares = append(middlewares, InjectLogger(rootLogger, projectID))
 
 	if errFn == nil {
-		return RegisterHTTPServer("/", Chain(defaultErrorHandler(fn), middlewares...)), nil
+		errFn = DefaultErrorHandler
 	}
 
-	return RegisterHTTPServer("/", Chain(errFn(fn), middlewares...)), nil
+	RegisterHTTPServer("/", Chain(errFn(fn), middlewares...))
+	return nil
 }
 
-func RegisterHTTPServer(path string, handler http.Handler) *http.Server {
+func RegisterHTTPServer(path string, handler http.Handler) {
 	port, isSet := os.LookupEnv("PORT")
 	if !isSet {
 		port = "8080"
@@ -58,28 +60,25 @@ func RegisterHTTPServer(path string, handler http.Handler) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 
-	return &http.Server{
+	server = &http.Server{
 		Addr:    hostAddr + ":" + port,
 		Handler: mux,
 	}
 }
 
-func StartAndTerminateWithSignal(srv *http.Server) {
+func StartHTTPServer(stop <-chan struct{}) {
 	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
 			log.Error().Msgf("server closed with error : %v", err)
 		}
 	}()
 
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
-
-	<-sigCh
+	<-stop
 	log.Info().Msg("recive SIGTERM or SIGINT")
 
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		log.Error().Msgf("failed to shutdown HTTP Server : %v", err)
 	}
 

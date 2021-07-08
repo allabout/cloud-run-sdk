@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"testing"
 
@@ -16,6 +17,14 @@ type logEntry struct {
 	Severity string `json:"severity"`
 	Trace    string `json:"logging.googleapis.com/trace"`
 	Message  string `json:"message"`
+}
+
+func TestMain(m *testing.M) {
+	if err := os.Setenv("K_CONFIGURATION", "true"); err != nil {
+		log.Fatal().Msgf("%v", err)
+	}
+
+	os.Exit(m.Run())
 }
 
 func TestInjectLogger(t *testing.T) {
@@ -93,10 +102,10 @@ func TestInjectLogger(t *testing.T) {
 
 	for _, tt := range tests {
 		buf := &bytes.Buffer{}
-		rootLogger := zerolog.SetLogger(buf, tt.debug, true, false)
+		rootLogger := zerolog.SetLogger(buf, tt.debug, true)
 		resprec := httptest.NewRecorder()
 
-		Chain(DefaultErrorHandler(tt.handlerFunc), InjectLogger(&rootLogger, "sample-google-project", true)).ServeHTTP(resprec, tt.requestFunc())
+		Chain(DefaultErrorHandler(tt.handlerFunc), InjectLogger(&rootLogger, "sample-google-project")).ServeHTTP(resprec, tt.requestFunc())
 
 		var entry logEntry
 		if err := json.Unmarshal(buf.Bytes(), &entry); err != nil {

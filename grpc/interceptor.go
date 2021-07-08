@@ -15,7 +15,7 @@ import (
 
 func LoggerInterceptor(projectID string, isCloudRun, debug bool) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		logger := clog.SetLogger(os.Stdout, debug, util.IsCloudRun(), true)
+		logger := clog.SetLogger(os.Stdout, debug, true)
 		ctx = logger.WithContext(ctx)
 
 		if !isCloudRun {

@@ -3,9 +3,7 @@ package http
 import (
 	"fmt"
 	"net/http"
-	"os"
 
-	clog "github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/ishii1648/cloud-run-sdk/util"
 	"github.com/rs/zerolog"
 )
@@ -19,11 +17,9 @@ func Chain(h http.Handler, middlewares ...Middleware) http.Handler {
 	return h
 }
 
-func InjectLogger(projectID string, isCloudRun, debug bool) Middleware {
+func InjectLogger(logger *zerolog.Logger, projectID string, isCloudRun bool) Middleware {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := clog.SetLogger(os.Stdout, debug, util.IsCloudRun(), true)
-
 			if !isCloudRun {
 				h.ServeHTTP(w, r.WithContext(logger.WithContext(r.Context())))
 				return

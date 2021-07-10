@@ -17,7 +17,7 @@ func Chain(h http.Handler, middlewares ...Middleware) http.Handler {
 	return h
 }
 
-func InjectLogger(logger *zerolog.Logger, projectID string) Middleware {
+func injectLogger(logger *zerolog.Logger, projectID string) Middleware {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !util.IsCloudRun() {

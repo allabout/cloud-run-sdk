@@ -3,12 +3,17 @@ package zerolog
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/ishii1648/cloud-run-sdk/util"
 	"github.com/rs/zerolog"
 )
 
 var firstCallFlag = true
+
+func SetDefaultLogger(debug bool) zerolog.Logger {
+	return SetLogger(os.Stdout, debug, true)
+}
 
 func SetLogger(w io.Writer, debug, isSourceLocation bool) zerolog.Logger {
 	defer func() {

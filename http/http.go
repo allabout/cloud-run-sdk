@@ -12,28 +12,35 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type AppHandlerFunc func(w http.ResponseWriter, r *http.Request) error
-
-type HandlerFunc func(fn AppHandlerFunc) http.Handler
-
-func DefaultHandler(fn AppHandlerFunc) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
-
-		if err := fn(w, r); err != nil {
-			logger.Errorf("%v", err)
-		}
-	})
+type Error struct {
+	// error message for cloud run administator
+	Error error
+	// error message for client user
+	Message string
+	// http status code for client user
+	Code int
 }
 
-func BindHandlerWithLogger(rootLogger *pkgzerolog.Logger, handler http.Handler, middlewares ...Middleware) (http.Handler, error) {
+// It's usually a mistake to pass back the concrete type of an error rather than error,
+// because it can make it difficult to catch errors,
+// but it's the right thing to do here because ServeHTTP is the only place that sees the value and uses its contents.
+type AppHandler func(http.ResponseWriter, *http.Request) *Error
+
+func (fn AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := fn(w, r); err != nil {
+		logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+		logger.Errorf("error : %v", err)
+		http.Error(w, err.Message, err.Code)
+	}
+}
+
+func BindHandlerWithLogger(rootLogger *pkgzerolog.Logger, h http.Handler, middlewares ...Middleware) (http.Handler, error) {
 	projectID, err := util.FetchProjectID()
 	if err != nil {
 		return nil, err
 	}
 
-	return Chain(
-		handler, append(middlewares, injectLogger(rootLogger, projectID))...), nil
+	return Chain(h, append(middlewares, injectLogger(rootLogger, projectID))...), nil
 }
 
 func StartHTTPServer(path string, handler http.Handler, stopCh <-chan struct{}) {

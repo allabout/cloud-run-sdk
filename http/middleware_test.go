@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"testing"
 
@@ -19,19 +18,11 @@ type logEntry struct {
 	Message  string `json:"message"`
 }
 
-func TestMain(m *testing.M) {
-	if err := os.Setenv("K_CONFIGURATION", "true"); err != nil {
-		log.Fatal().Msgf("%v", err)
-	}
-
-	os.Exit(m.Run())
-}
-
 func TestInjectLogger(t *testing.T) {
 	tests := []struct {
 		debug       bool
 		requestFunc func() *http.Request
-		handlerFunc AppHandlerFunc
+		appHandler  AppHandler
 		want        logEntry
 	}{
 		{
@@ -44,7 +35,7 @@ func TestInjectLogger(t *testing.T) {
 				req.Header.Add("X-Cloud-Trace-Context", "0123456789abcdef0123456789abcdef/123;o=1")
 				return req
 			},
-			handlerFunc: func(w http.ResponseWriter, r *http.Request) error {
+			appHandler: func(w http.ResponseWriter, r *http.Request) *Error {
 				logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
 				logger.Info("info message")
 				return nil
@@ -65,7 +56,7 @@ func TestInjectLogger(t *testing.T) {
 				req.Header.Add("X-Cloud-Trace-Context", "0123456789abcdef0123456789/123;o=1")
 				return req
 			},
-			handlerFunc: func(w http.ResponseWriter, r *http.Request) error {
+			appHandler: func(w http.ResponseWriter, r *http.Request) *Error {
 				logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
 				logger.Debug("debug message") // Debug log is ignored
 				logger.Info("info message")
@@ -87,7 +78,7 @@ func TestInjectLogger(t *testing.T) {
 				req.Header.Add("X-Cloud-Trace-Context", "0123456789abcdef/123;o=1")
 				return req
 			},
-			handlerFunc: func(w http.ResponseWriter, r *http.Request) error {
+			appHandler: func(w http.ResponseWriter, r *http.Request) *Error {
 				logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
 				logger.Debug("debug message")
 				return nil
@@ -105,7 +96,7 @@ func TestInjectLogger(t *testing.T) {
 		rootLogger := zerolog.SetLogger(buf, tt.debug, true)
 		resprec := httptest.NewRecorder()
 
-		Chain(DefaultHandler(tt.handlerFunc), injectLogger(&rootLogger, "sample-google-project")).ServeHTTP(resprec, tt.requestFunc())
+		Chain(tt.appHandler, injectLogger(&rootLogger, "sample-google-project")).ServeHTTP(resprec, tt.requestFunc())
 
 		var entry logEntry
 		if err := json.Unmarshal(buf.Bytes(), &entry); err != nil {

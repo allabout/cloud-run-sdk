@@ -1,33 +1,32 @@
 package util
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
 var (
-	stopCh               = make(chan os.Signal, 2)
-	onlyOneSignalHandler = make(chan struct{})
-	shutdownSignals      = []os.Signal{os.Interrupt, syscall.SIGTERM}
+	shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}
+	sigCh           = make(chan os.Signal, 2)
 )
 
 // SetupSignalHandler registers for SIGTERM and SIGINT. A stop channel is returned
 // which is closed on one of these signals. If a second signal is caught, the program
 // is terminated with exit code 1.
-func SetupSignalHandler() context.Context {
-	close(onlyOneSignalHandler) // panics when called twice
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	signal.Notify(stopCh, shutdownSignals...)
+func SetupSignalHandler() (stopCh <-chan struct{}) {
+	stop := make(chan struct{})
+	signal.Notify(sigCh, shutdownSignals...)
 	go func() {
-		<-stopCh
-		cancel()
-		<-stopCh
+		<-sigCh
+		close(stop)
+		<-sigCh
 		os.Exit(1) // second signal. Exit directly.
 	}()
 
-	return ctx
+	return stop
+}
+
+func InjectSignal(sig os.Signal) {
+	sigCh <- sig
 }

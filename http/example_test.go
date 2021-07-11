@@ -3,7 +3,6 @@ package http_test
 import (
 	"fmt"
 	pkghttp "net/http"
-	"os"
 
 	"github.com/ishii1648/cloud-run-sdk/http"
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
@@ -19,11 +18,7 @@ var appHandler http.AppHandler = func(w pkghttp.ResponseWriter, r *pkghttp.Reque
 }
 
 func ExampleStartHTTPServer() {
-	rootLogger := zerolog.SetLogger(os.Stdout, true, false)
-
-	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", "google-sample-project"); err != nil {
-		log.Fatal().Msg(err.Error())
-	}
+	rootLogger := zerolog.SetDefaultLogger(true)
 
 	handler, err := http.BindHandlerWithLogger(&rootLogger, appHandler)
 	if err != nil {

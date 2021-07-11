@@ -64,8 +64,7 @@ func TestStartServer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var appHandler AppHandler
-	appHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		fmt.Fprint(w, "hello world")
 		return nil
 	}
@@ -131,8 +130,7 @@ func TestShutdownServerGraceful(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var appHandler AppHandler
-	appHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		ctx := r.Context()
 
 		go func() {
@@ -213,8 +211,7 @@ func TestErrorHandling(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var appHandler AppHandler
-	appHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		return &Error{Error: fmt.Errorf("failed something"), Message: "server error", Code: http.StatusInternalServerError}
 	}
 

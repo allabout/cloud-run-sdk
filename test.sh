@@ -6,7 +6,7 @@ COVERAGE=$1
 
 echo "" > coverage.txt
 
-for d in $(go list ./... | grep -v example); do
+for d in $(go list ./...); do
     if [[ $COVERAGE = "-coverage" ]]; then
         go test -v -race -coverprofile=profile.out -covermode=atomic $d
         if [ -f profile.out ]; then

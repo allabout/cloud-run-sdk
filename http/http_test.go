@@ -88,14 +88,15 @@ func TestStartServer(t *testing.T) {
 
 	count := 0
 	for {
-		if count >= 3 {
-			t.Fatal("failed to connect port for timeout")
-		}
 		conn, err := net.DialTimeout("tcp", hostAddr+":"+port, time.Duration(300)*time.Millisecond)
 		if err == nil {
 			conn.Close()
 			break
 		}
+		if count >= 5 {
+			t.Fatalf("failed to connect port for timeout : %v", err)
+		}
+		time.Sleep(time.Duration(100) * time.Millisecond)
 		count++
 	}
 
@@ -234,14 +235,15 @@ func TestErrorHandling(t *testing.T) {
 
 	count := 0
 	for {
-		if count >= 3 {
-			t.Fatal("failed to connect port for timeout")
-		}
 		conn, err := net.DialTimeout("tcp", hostAddr+":"+port, time.Duration(300)*time.Millisecond)
 		if err == nil {
 			conn.Close()
 			break
 		}
+		if count >= 5 {
+			t.Fatalf("failed to connect port for timeout : %v", err)
+		}
+		time.Sleep(time.Duration(100) * time.Millisecond)
 		count++
 	}
 

@@ -3,8 +3,6 @@ package grpc
 import (
 	"net"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -33,17 +31,14 @@ func RegisterGRPCServer(debug bool, projectID string, interceptors ...grpc.Unary
 	return srv, l, nil
 }
 
-func StartAndTerminateWithSignal(srv *grpc.Server, l net.Listener) {
+func StartAndTerminateWithSignal(srv *grpc.Server, l net.Listener, stop <-chan struct{}) {
 	go func() {
 		if err := srv.Serve(l); err != nil {
 			log.Error().Msgf("server closed with error : %v", err)
 		}
 	}()
 
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
-
-	<-sigCh
+	<-stop
 	log.Info().Msg("recive SIGTERM or SIGINT")
 
 	srv.GracefulStop()

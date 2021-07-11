@@ -2,11 +2,22 @@ package zerolog
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/rs/zerolog/log"
 )
 
 var buffer = &bytes.Buffer{}
+
+func TestMain(m *testing.M) {
+	if err := os.Setenv("K_CONFIGURATION", "true"); err != nil {
+		log.Fatal().Msgf("%v", err)
+	}
+
+	os.Exit(m.Run())
+}
 
 func TestDebug(t *testing.T) {
 	for _, tt := range []struct {
@@ -16,7 +27,7 @@ func TestDebug(t *testing.T) {
 		{"debug message", `{"severity":"DEBUG","message":"debug message"}`},
 		{"", `{"severity":"DEBUG"}`},
 	} {
-		logger := SetLogger(buffer, true, true, false)
+		logger := SetLogger(buffer, true, false)
 		l := NewRequestLogger(&logger)
 
 		l.Debug(tt.args)
@@ -38,7 +49,7 @@ func TestDebugf(t *testing.T) {
 		{"%s", "debug message", `{"severity":"DEBUG","message":"debug message"}`},
 		{"%v", "", `{"severity":"DEBUG"}`},
 	} {
-		logger := SetLogger(buffer, true, true, false)
+		logger := SetLogger(buffer, true, false)
 		l := NewRequestLogger(&logger)
 
 		l.Debugf(tt.format, tt.args)
@@ -59,7 +70,7 @@ func TestInfo(t *testing.T) {
 		{"info message", `{"severity":"INFO","message":"info message"}`},
 		{"", `{"severity":"INFO"}`},
 	} {
-		logger := SetLogger(buffer, true, true, false)
+		logger := SetLogger(buffer, true, false)
 		l := NewRequestLogger(&logger)
 
 		l.Info(tt.args)
@@ -81,7 +92,7 @@ func TestInfof(t *testing.T) {
 		{"%s", "info message", `{"severity":"INFO","message":"info message"}`},
 		{"%v", "", `{"severity":"INFO"}`},
 	} {
-		logger := SetLogger(buffer, true, true, false)
+		logger := SetLogger(buffer, true, false)
 		l := NewRequestLogger(&logger)
 
 		l.Infof(tt.format, tt.args)
@@ -102,7 +113,7 @@ func TestError(t *testing.T) {
 		{"error message", `{"severity":"ERROR","message":"error message"}`},
 		{"", `{"severity":"ERROR"}`},
 	} {
-		logger := SetLogger(buffer, true, true, false)
+		logger := SetLogger(buffer, true, false)
 		l := NewRequestLogger(&logger)
 
 		l.Error(tt.args)
@@ -124,7 +135,7 @@ func TestErrorf(t *testing.T) {
 		{"%s", "error message", `{"severity":"ERROR","message":"error message"}`},
 		{"%v", "", `{"severity":"ERROR"}`},
 	} {
-		logger := SetLogger(buffer, true, true, false)
+		logger := SetLogger(buffer, true, false)
 		l := NewRequestLogger(&logger)
 
 		l.Errorf(tt.format, tt.args)

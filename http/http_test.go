@@ -15,17 +15,74 @@ import (
 
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/ishii1648/cloud-run-sdk/util"
+	"github.com/rs/zerolog/log"
 )
 
 func TestBindHandlerWithLogger(t *testing.T) {
-	rootLogger := zerolog.SetLogger(os.Stdout, true, false)
+	buf := &bytes.Buffer{}
+	rootLogger := zerolog.SetLogger(buf, true, false)
 
 	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", "google-sample-project"); err != nil {
 		t.Fatal(err)
 	}
 
-	var appHandler AppHandler
-	appHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+		logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+		logger.Info("appHandler")
+		fmt.Fprint(w, "hello world")
+		return nil
+	}
+
+	var middleware = func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+			logger.Info("middleware")
+			h.ServeHTTP(w, r)
+		})
+	}
+
+	handler, err := BindHandlerWithLogger(&rootLogger, appHandler, middleware)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ts := httptest.NewServer(handler)
+	req, err := http.NewRequest(http.MethodGet, ts.URL, strings.NewReader(""))
+	if err != nil {
+		t.Errorf("NewRequest failed: %v", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	if want, got := `{"severity":"INFO","message":"middleware"}{"severity":"INFO","message":"appHandler"}`, strings.ReplaceAll(buf.String(), "\n", ""); want != got {
+		t.Errorf("want %q, got %q", want, got)
+	}
+
+	if want, got := "hello world", string(respBody); want != got {
+		t.Errorf("want %q, got %q", want, got)
+	}
+}
+
+func TestBindHandlerWithLoggerNoMiddleware(t *testing.T) {
+	buf := &bytes.Buffer{}
+	rootLogger := zerolog.SetLogger(buf, true, false)
+
+	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", "google-sample-project"); err != nil {
+		t.Fatal(err)
+	}
+
+	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+		logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+		logger.Info("appHandler")
 		fmt.Fprint(w, "hello world")
 		return nil
 	}
@@ -52,8 +109,12 @@ func TestBindHandlerWithLogger(t *testing.T) {
 	}
 	resp.Body.Close()
 
+	if want, got := `{"severity":"INFO","message":"appHandler"}`, strings.ReplaceAll(buf.String(), "\n", ""); want != got {
+		t.Errorf("want %q, got %q", want, got)
+	}
+
 	if want, got := "hello world", string(respBody); want != got {
-		t.Errorf("wrong response %s, want %s", got, want)
+		t.Errorf("want %q, got %q", want, got)
 	}
 }
 

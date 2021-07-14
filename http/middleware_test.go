@@ -96,7 +96,7 @@ func TestInjectLogger(t *testing.T) {
 		rootLogger := zerolog.SetLogger(buf, tt.debug, true)
 		resprec := httptest.NewRecorder()
 
-		Chain(tt.appHandler, injectLogger(&rootLogger, "sample-google-project")).ServeHTTP(resprec, tt.requestFunc())
+		Chain(tt.appHandler, InjectLogger(&rootLogger, "sample-google-project")).ServeHTTP(resprec, tt.requestFunc())
 
 		var entry logEntry
 		if err := json.Unmarshal(buf.Bytes(), &entry); err != nil {

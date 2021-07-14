@@ -40,7 +40,9 @@ func BindHandlerWithLogger(rootLogger *pkgzerolog.Logger, h http.Handler, middle
 		return nil, err
 	}
 
-	return Chain(h, append(middlewares, injectLogger(rootLogger, projectID))...), nil
+	middlewares = append([]Middleware{InjectLogger(rootLogger, projectID)}, middlewares...)
+
+	return Chain(h, middlewares...), nil
 }
 
 func StartHTTPServer(path string, handler http.Handler, stopCh <-chan struct{}) {

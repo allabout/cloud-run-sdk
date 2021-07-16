@@ -28,7 +28,7 @@ type AppHandler func(http.ResponseWriter, *http.Request) *Error
 
 func (fn AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := fn(w, r); err != nil {
-		logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+		logger := zerolog.NewLogger(log.Ctx(r.Context()))
 		logger.Errorf("error : %v", err)
 		http.Error(w, err.Message, err.Code)
 	}

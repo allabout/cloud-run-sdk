@@ -36,7 +36,7 @@ func TestInjectLogger(t *testing.T) {
 				return req
 			},
 			appHandler: func(w http.ResponseWriter, r *http.Request) *Error {
-				logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+				logger := zerolog.NewLogger(log.Ctx(r.Context()))
 				logger.Info("info message")
 				return nil
 			},
@@ -57,7 +57,7 @@ func TestInjectLogger(t *testing.T) {
 				return req
 			},
 			appHandler: func(w http.ResponseWriter, r *http.Request) *Error {
-				logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+				logger := zerolog.NewLogger(log.Ctx(r.Context()))
 				logger.Debug("debug message") // Debug log is ignored
 				logger.Info("info message")
 				return nil
@@ -79,7 +79,7 @@ func TestInjectLogger(t *testing.T) {
 				return req
 			},
 			appHandler: func(w http.ResponseWriter, r *http.Request) *Error {
-				logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+				logger := zerolog.NewLogger(log.Ctx(r.Context()))
 				logger.Debug("debug message")
 				return nil
 			},

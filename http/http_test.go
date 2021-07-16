@@ -27,7 +27,7 @@ func TestBindHandlerWithLogger(t *testing.T) {
 	}
 
 	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
-		logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+		logger := zerolog.NewLogger(log.Ctx(r.Context()))
 		logger.Info("appHandler")
 		fmt.Fprint(w, "hello world")
 		return nil
@@ -35,7 +35,7 @@ func TestBindHandlerWithLogger(t *testing.T) {
 
 	var middleware = func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+			logger := zerolog.NewLogger(log.Ctx(r.Context()))
 			logger.Info("middleware")
 			h.ServeHTTP(w, r)
 		})
@@ -81,7 +81,7 @@ func TestBindHandlerWithLoggerNoMiddleware(t *testing.T) {
 	}
 
 	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
-		logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+		logger := zerolog.NewLogger(log.Ctx(r.Context()))
 		logger.Info("appHandler")
 		fmt.Fprint(w, "hello world")
 		return nil
@@ -325,6 +325,74 @@ func TestErrorHandling(t *testing.T) {
 	resp.Body.Close()
 
 	if want, got := "server error\n", string(respBody); want != got {
+		t.Errorf("wrong response %q, want %q", got, want)
+	}
+
+	if want, got := http.StatusInternalServerError, resp.StatusCode; want != got {
+		t.Errorf("wrong response code %d, want %d", got, want)
+	}
+}
+
+func TestErrorHandlingOmitMessage(t *testing.T) {
+	buf := &bytes.Buffer{}
+	rootLogger := zerolog.SetLogger(buf, true, false)
+
+	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", "google-sample-project"); err != nil {
+		t.Fatal(err)
+	}
+
+	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+		return &Error{Error: fmt.Errorf("failed something"), Code: http.StatusInternalServerError}
+	}
+
+	handler, err := BindHandlerWithLogger(&rootLogger, appHandler)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	port := "8083"
+	if err := os.Setenv("PORT", port); err != nil {
+		t.Fatal(err)
+	}
+
+	go StartHTTPServer("/", handler, util.SetupSignalHandler())
+
+	hostAddr, isSet := os.LookupEnv("HOST_ADDR")
+	if !isSet {
+		hostAddr = "0.0.0.0"
+	}
+
+	count := 0
+	for {
+		conn, err := net.DialTimeout("tcp", hostAddr+":"+port, time.Duration(300)*time.Millisecond)
+		if err == nil {
+			conn.Close()
+			break
+		}
+		if count >= 5 {
+			t.Fatalf("failed to connect port for timeout : %v", err)
+		}
+		time.Sleep(time.Duration(100) * time.Millisecond)
+		count++
+	}
+
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s:%s", hostAddr, port), strings.NewReader(""))
+	if err != nil {
+		t.Errorf("NewRequest failed: %v", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	if want, got := "\n", string(respBody); want != got {
 		t.Errorf("wrong response %q, want %q", got, want)
 	}
 

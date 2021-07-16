@@ -36,7 +36,7 @@ func LoggerInterceptor(projectID string, isCloudRun, debug bool) grpc.UnaryServe
 
 func ErrorHandlerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		logger := clog.NewRequestLogger(log.Ctx(ctx))
+		logger := clog.NewLogger(log.Ctx(ctx))
 
 		res, err := handler(ctx, req)
 		if err != nil {

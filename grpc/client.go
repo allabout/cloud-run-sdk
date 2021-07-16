@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+// addr 127.0.0.1:443
 func NewConn(addr string, localhost bool) (*grpc.ClientConn, error) {
 	if localhost {
 		conn, err := grpc.Dial(

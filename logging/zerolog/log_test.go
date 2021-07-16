@@ -28,7 +28,7 @@ func TestDebug(t *testing.T) {
 		{"", `{"severity":"DEBUG"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewRequestLogger(&logger)
+		l := NewLogger(&logger)
 
 		l.Debug(tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -50,7 +50,7 @@ func TestDebugf(t *testing.T) {
 		{"%v", "", `{"severity":"DEBUG"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewRequestLogger(&logger)
+		l := NewLogger(&logger)
 
 		l.Debugf(tt.format, tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -71,7 +71,7 @@ func TestInfo(t *testing.T) {
 		{"", `{"severity":"INFO"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewRequestLogger(&logger)
+		l := NewLogger(&logger)
 
 		l.Info(tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -93,7 +93,7 @@ func TestInfof(t *testing.T) {
 		{"%v", "", `{"severity":"INFO"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewRequestLogger(&logger)
+		l := NewLogger(&logger)
 
 		l.Infof(tt.format, tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -114,7 +114,7 @@ func TestError(t *testing.T) {
 		{"", `{"severity":"ERROR"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewRequestLogger(&logger)
+		l := NewLogger(&logger)
 
 		l.Error(tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -136,7 +136,7 @@ func TestErrorf(t *testing.T) {
 		{"%v", "", `{"severity":"ERROR"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewRequestLogger(&logger)
+		l := NewLogger(&logger)
 
 		l.Errorf(tt.format, tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")

@@ -28,7 +28,7 @@ import (
 
 var (
 	appHandler http.AppHandler = func(w pkghttp.ResponseWriter, r *pkghttp.Request) *http.Error {
-		logger := zerolog.NewRequestLogger(log.Ctx(r.Context()))
+		logger := zerolog.NewLogger(log.Ctx(r.Context()))
 		logger.Info("message")
 		fmt.Fprint(w, "hello world")
 		return nil

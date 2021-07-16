@@ -56,37 +56,37 @@ func SetLogger(w io.Writer, debug, isSourceLocation bool) zerolog.Logger {
 	return logger.With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: w})
 }
 
-// RequestLogger is logger within a http request
-type RequestLogger struct {
+// Logger is logger within a http request
+type Logger struct {
 	logger *zerolog.Logger
 }
 
-func NewRequestLogger(logger *zerolog.Logger) RequestLogger {
-	return RequestLogger{
+func NewLogger(logger *zerolog.Logger) *Logger {
+	return &Logger{
 		logger: logger,
 	}
 }
 
-func (l RequestLogger) Debug(args ...interface{}) {
+func (l *Logger) Debug(args ...interface{}) {
 	l.logger.Debug().Msg(fmt.Sprint(args...))
 }
 
-func (l RequestLogger) Debugf(format string, args ...interface{}) {
+func (l *Logger) Debugf(format string, args ...interface{}) {
 	l.logger.Debug().Msgf(format, args...)
 }
 
-func (l RequestLogger) Info(args ...interface{}) {
+func (l *Logger) Info(args ...interface{}) {
 	l.logger.Info().Msg(fmt.Sprint(args...))
 }
 
-func (l RequestLogger) Infof(format string, args ...interface{}) {
+func (l *Logger) Infof(format string, args ...interface{}) {
 	l.logger.Info().Msgf(format, args...)
 }
 
-func (l RequestLogger) Error(args ...interface{}) {
+func (l *Logger) Error(args ...interface{}) {
 	l.logger.Error().Msg(fmt.Sprint(args...))
 }
 
-func (l RequestLogger) Errorf(format string, args ...interface{}) {
+func (l *Logger) Errorf(format string, args ...interface{}) {
 	l.logger.Error().Msgf(format, args...)
 }

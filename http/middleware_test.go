@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type logEntry struct {
@@ -36,7 +35,7 @@ func TestInjectLogger(t *testing.T) {
 				return req
 			},
 			appHandler: func(w http.ResponseWriter, r *http.Request) *Error {
-				logger := zerolog.NewLogger(log.Ctx(r.Context()))
+				logger := zerolog.Ctx(r.Context())
 				logger.Info("info message")
 				return nil
 			},
@@ -57,7 +56,7 @@ func TestInjectLogger(t *testing.T) {
 				return req
 			},
 			appHandler: func(w http.ResponseWriter, r *http.Request) *Error {
-				logger := zerolog.NewLogger(log.Ctx(r.Context()))
+				logger := zerolog.Ctx(r.Context())
 				logger.Debug("debug message") // Debug log is ignored
 				logger.Info("info message")
 				return nil
@@ -79,7 +78,7 @@ func TestInjectLogger(t *testing.T) {
 				return req
 			},
 			appHandler: func(w http.ResponseWriter, r *http.Request) *Error {
-				logger := zerolog.NewLogger(log.Ctx(r.Context()))
+				logger := zerolog.Ctx(r.Context())
 				logger.Debug("debug message")
 				return nil
 			},
@@ -96,7 +95,7 @@ func TestInjectLogger(t *testing.T) {
 		rootLogger := zerolog.SetLogger(buf, tt.debug, true)
 		resprec := httptest.NewRecorder()
 
-		Chain(tt.appHandler, InjectLogger(&rootLogger, "sample-google-project")).ServeHTTP(resprec, tt.requestFunc())
+		Chain(tt.appHandler, InjectLogger(rootLogger, "sample-google-project")).ServeHTTP(resprec, tt.requestFunc())
 
 		var entry logEntry
 		if err := json.Unmarshal(buf.Bytes(), &entry); err != nil {

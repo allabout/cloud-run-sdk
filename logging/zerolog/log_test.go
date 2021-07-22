@@ -28,9 +28,8 @@ func TestDebug(t *testing.T) {
 		{"", `{"severity":"DEBUG"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewLogger(&logger)
 
-		l.Debug(tt.args)
+		logger.Debug(tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
 		if output != tt.want {
 			t.Errorf("Debug(%s) = %q, want = %q", tt.args, output, tt.want)
@@ -50,9 +49,8 @@ func TestDebugf(t *testing.T) {
 		{"%v", "", `{"severity":"DEBUG"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewLogger(&logger)
 
-		l.Debugf(tt.format, tt.args)
+		logger.Debugf(tt.format, tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
 		if output != tt.want {
 			t.Errorf("Debug(%s, %v) = %q, want = %q", tt.format, tt.args, output, tt.want)
@@ -71,9 +69,8 @@ func TestInfo(t *testing.T) {
 		{"", `{"severity":"INFO"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewLogger(&logger)
 
-		l.Info(tt.args)
+		logger.Info(tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
 		if output != tt.want {
 			t.Errorf("Info(%s) = %q, want = %q", tt.args, output, tt.want)
@@ -93,9 +90,8 @@ func TestInfof(t *testing.T) {
 		{"%v", "", `{"severity":"INFO"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewLogger(&logger)
 
-		l.Infof(tt.format, tt.args)
+		logger.Infof(tt.format, tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
 		if output != tt.want {
 			t.Errorf("Info(%s, %v) = %q, want = %q", tt.format, tt.args, output, tt.want)
@@ -114,9 +110,8 @@ func TestError(t *testing.T) {
 		{"", `{"severity":"ERROR"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewLogger(&logger)
 
-		l.Error(tt.args)
+		logger.Error(tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
 		if output != tt.want {
 			t.Errorf("Error(%s) = %q, want = %q", tt.args, output, tt.want)
@@ -136,9 +131,8 @@ func TestErrorf(t *testing.T) {
 		{"%v", "", `{"severity":"ERROR"}`},
 	} {
 		logger := SetLogger(buffer, true, false)
-		l := NewLogger(&logger)
 
-		l.Errorf(tt.format, tt.args)
+		logger.Errorf(tt.format, tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
 		if output != tt.want {
 			t.Errorf("Error(%s, %v) = %q, want = %q", tt.format, tt.args, output, tt.want)

@@ -57,7 +57,7 @@ func NewServer(rootLogger *zerolog.Logger, projectID string, middlewares ...Midd
 	}
 }
 
-func (s *Server) Start(path string, handler http.Handler, stopCh <-chan struct{}) {
+func (s *Server) Start(path string, handler AppHandler, stopCh <-chan struct{}) {
 	mux := http.NewServeMux()
 	mux.Handle(path, Chain(handler, s.middlewares...))
 

@@ -3,10 +3,8 @@ package grpc
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
-	"strings"
 
-	m "cloud.google.com/go/compute/metadata"
+	"github.com/ishii1648/cloud-run-sdk/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -37,7 +35,7 @@ func newTLSConn(addr string) (*grpc.ClientConn, error) {
 		RootCAs: systemRoots,
 	})
 
-	idToken, err := getIDToken(addr)
+	idToken, err := util.GetIDToken(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -46,22 +44,10 @@ func newTLSConn(addr string) (*grpc.ClientConn, error) {
 		addr,
 		grpc.WithAuthority(addr),
 		grpc.WithTransportCredentials(cred),
-		grpc.WithUnaryInterceptor(InjectClientAuthInterceptor(idToken)),
+		grpc.WithUnaryInterceptor(AuthInterceptor(idToken)),
 	)
 	if err != nil {
 		return nil, err
 	}
 	return conn, nil
-}
-
-func getIDToken(addr string) (string, error) {
-	serviceURL := fmt.Sprintf("https://%s", strings.Split(addr, ":")[0])
-	tokenURL := fmt.Sprintf("/instance/service-accounts/default/identity?audience=%s", serviceURL)
-
-	idToken, err := m.Get(tokenURL)
-	if err != nil {
-		return "", err
-	}
-
-	return idToken, nil
 }

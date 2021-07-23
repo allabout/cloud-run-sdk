@@ -4,43 +4,54 @@ import (
 	"net"
 	"os"
 
-	"github.com/rs/zerolog/log"
+	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
-func RegisterGRPCServer(debug bool, projectID string, interceptors ...grpc.UnaryServerInterceptor) (*grpc.Server, net.Listener, error) {
-	port := "8080"
-	if fromEnv := os.Getenv("GRPC_PORT"); fromEnv != "" {
-		port = fromEnv
-	}
+type Server struct {
+	srv    *grpc.Server
+	logger *zerolog.Logger
+}
 
-	hostAddr := "0.0.0.0"
-	if h := os.Getenv("HOST_ADDR"); h != "" {
-		hostAddr = h
-	}
-
-	l, err := net.Listen("tcp", hostAddr+":"+port)
-	if err != nil {
-		return nil, nil, err
-	}
+func NewServer(rootLogger *zerolog.Logger, projectID string, interceptors ...grpc.UnaryServerInterceptor) *Server {
+	interceptors = append([]grpc.UnaryServerInterceptor{LoggerInterceptor(rootLogger, projectID)}, interceptors...)
 
 	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(interceptors...))
 	reflection.Register(srv)
 
-	return srv, l, nil
+	return &Server{
+		srv:    srv,
+		logger: rootLogger,
+	}
 }
 
-func StartAndTerminateWithSignal(srv *grpc.Server, l net.Listener, stop <-chan struct{}) {
+func CreateNetworkListener(addr string) (net.Listener, error) {
+	port, isSet := os.LookupEnv("GRPC_PORT")
+	if !isSet {
+		port = "8080"
+	}
+
+	hostAddr, isSet := os.LookupEnv("HOST_ADDR")
+	if !isSet {
+		hostAddr = "0.0.0.0"
+	}
+
+	return net.Listen("tcp", hostAddr+":"+port)
+}
+
+func (s *Server) StartServer(lis net.Listener, stopCh <-chan struct{}) {
 	go func() {
-		if err := srv.Serve(l); err != nil {
-			log.Error().Msgf("server closed with error : %v", err)
+		if err := s.srv.Serve(lis); err != nil {
+			s.logger.Errorf("server closed with error : %v", err)
 		}
 	}()
 
-	<-stop
-	log.Info().Msg("recive SIGTERM or SIGINT")
+	<-stopCh
 
-	srv.GracefulStop()
-	log.Info().Msg("gRPC Server shutdowned")
+	s.logger.Info("recive SIGTERM or SIGINT")
+
+	s.srv.GracefulStop()
+
+	s.logger.Info("gRPC Server shutdowned")
 }

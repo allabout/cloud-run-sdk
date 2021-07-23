@@ -1,23 +1,29 @@
 package zerolog
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/ishii1648/cloud-run-sdk/util"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-var firstCallFlag = true
+var isFirstCall = true
 
-func SetDefaultLogger(debug bool) zerolog.Logger {
+type Logger struct {
+	ZeroLogger *zerolog.Logger
+}
+
+func SetDefaultLogger(debug bool) *Logger {
 	return SetLogger(os.Stdout, debug, true)
 }
 
-func SetLogger(w io.Writer, debug, isSourceLocation bool) zerolog.Logger {
+func SetLogger(w io.Writer, debug, isSourceLocation bool) *Logger {
 	defer func() {
-		firstCallFlag = false
+		isFirstCall = false
 	}()
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -28,7 +34,7 @@ func SetLogger(w io.Writer, debug, isSourceLocation bool) zerolog.Logger {
 	logger := zerolog.New(w)
 
 	if util.IsCloudRun() {
-		if firstCallFlag {
+		if isFirstCall {
 			zerolog.LevelFieldName = "severity"
 			// mapping to Cloud Logging LogSeverity
 			// see. https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#LogSeverity
@@ -50,43 +56,37 @@ func SetLogger(w io.Writer, debug, isSourceLocation bool) zerolog.Logger {
 		if isSourceLocation {
 			logger = logger.Hook(&CallerHook{})
 		}
-		return logger
+	} else {
+		logger = logger.With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: w})
 	}
 
-	return logger.With().Timestamp().Logger().Output(zerolog.ConsoleWriter{Out: w})
+	return &Logger{&logger}
 }
 
-// Logger is logger within a http request
-type Logger struct {
-	logger *zerolog.Logger
-}
-
-func NewLogger(logger *zerolog.Logger) *Logger {
-	return &Logger{
-		logger: logger,
-	}
+func Ctx(ctx context.Context) *Logger {
+	return &Logger{log.Ctx(ctx)}
 }
 
 func (l *Logger) Debug(args ...interface{}) {
-	l.logger.Debug().Msg(fmt.Sprint(args...))
+	l.ZeroLogger.Debug().Msg(fmt.Sprint(args...))
 }
 
 func (l *Logger) Debugf(format string, args ...interface{}) {
-	l.logger.Debug().Msgf(format, args...)
+	l.ZeroLogger.Debug().Msgf(format, args...)
 }
 
 func (l *Logger) Info(args ...interface{}) {
-	l.logger.Info().Msg(fmt.Sprint(args...))
+	l.ZeroLogger.Info().Msg(fmt.Sprint(args...))
 }
 
 func (l *Logger) Infof(format string, args ...interface{}) {
-	l.logger.Info().Msgf(format, args...)
+	l.ZeroLogger.Info().Msgf(format, args...)
 }
 
 func (l *Logger) Error(args ...interface{}) {
-	l.logger.Error().Msg(fmt.Sprint(args...))
+	l.ZeroLogger.Error().Msg(fmt.Sprint(args...))
 }
 
 func (l *Logger) Errorf(format string, args ...interface{}) {
-	l.logger.Error().Msgf(format, args...)
+	l.ZeroLogger.Error().Msgf(format, args...)
 }

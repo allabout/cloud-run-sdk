@@ -8,7 +8,6 @@ import (
 
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/ishii1648/cloud-run-sdk/util"
-	pkgzerolog "github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -28,13 +27,13 @@ type AppHandler func(http.ResponseWriter, *http.Request) *Error
 
 func (fn AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := fn(w, r); err != nil {
-		logger := zerolog.NewLogger(log.Ctx(r.Context()))
+		logger := zerolog.Ctx(r.Context())
 		logger.Errorf("error : %v", err)
 		http.Error(w, err.Message, err.Code)
 	}
 }
 
-func BindHandlerWithLogger(rootLogger *pkgzerolog.Logger, h http.Handler, middlewares ...Middleware) (http.Handler, error) {
+func BindHandlerWithLogger(rootLogger *zerolog.Logger, h http.Handler, middlewares ...Middleware) (http.Handler, error) {
 	projectID, err := util.FetchProjectID()
 	if err != nil {
 		return nil, err

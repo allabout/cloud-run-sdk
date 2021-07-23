@@ -15,7 +15,6 @@ import (
 
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/ishii1648/cloud-run-sdk/util"
-	"github.com/rs/zerolog/log"
 )
 
 func TestBindHandlerWithLogger(t *testing.T) {
@@ -27,7 +26,7 @@ func TestBindHandlerWithLogger(t *testing.T) {
 	}
 
 	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
-		logger := zerolog.NewLogger(log.Ctx(r.Context()))
+		logger := zerolog.Ctx(r.Context())
 		logger.Info("appHandler")
 		fmt.Fprint(w, "hello world")
 		return nil
@@ -35,13 +34,13 @@ func TestBindHandlerWithLogger(t *testing.T) {
 
 	var middleware = func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := zerolog.NewLogger(log.Ctx(r.Context()))
+			logger := zerolog.Ctx(r.Context())
 			logger.Info("middleware")
 			h.ServeHTTP(w, r)
 		})
 	}
 
-	handler, err := BindHandlerWithLogger(&rootLogger, appHandler, middleware)
+	handler, err := BindHandlerWithLogger(rootLogger, appHandler, middleware)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,13 +80,13 @@ func TestBindHandlerWithLoggerNoMiddleware(t *testing.T) {
 	}
 
 	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
-		logger := zerolog.NewLogger(log.Ctx(r.Context()))
+		logger := zerolog.Ctx(r.Context())
 		logger.Info("appHandler")
 		fmt.Fprint(w, "hello world")
 		return nil
 	}
 
-	handler, err := BindHandlerWithLogger(&rootLogger, appHandler)
+	handler, err := BindHandlerWithLogger(rootLogger, appHandler)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +129,7 @@ func TestStartServer(t *testing.T) {
 		return nil
 	}
 
-	handler, err := BindHandlerWithLogger(&rootLogger, appHandler)
+	handler, err := BindHandlerWithLogger(rootLogger, appHandler)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +206,7 @@ func TestShutdownServerGraceful(t *testing.T) {
 		return nil
 	}
 
-	handler, err := BindHandlerWithLogger(&rootLogger, appHandler)
+	handler, err := BindHandlerWithLogger(rootLogger, appHandler)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +276,7 @@ func TestErrorHandling(t *testing.T) {
 		return &Error{Error: fmt.Errorf("failed something"), Message: "server error", Code: http.StatusInternalServerError}
 	}
 
-	handler, err := BindHandlerWithLogger(&rootLogger, appHandler)
+	handler, err := BindHandlerWithLogger(rootLogger, appHandler)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,7 +344,7 @@ func TestErrorHandlingOmitMessage(t *testing.T) {
 		return &Error{Error: fmt.Errorf("failed something"), Code: http.StatusInternalServerError}
 	}
 
-	handler, err := BindHandlerWithLogger(&rootLogger, appHandler)
+	handler, err := BindHandlerWithLogger(rootLogger, appHandler)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 var appHandler http.AppHandler = func(w pkghttp.ResponseWriter, r *pkghttp.Request) *http.Error {
-	logger := zerolog.NewLogger(log.Ctx(r.Context()))
+	logger := zerolog.Ctx(r.Context())
 	logger.Debug("debug message")
 	fmt.Fprint(w, "hello world")
 	return nil
@@ -20,7 +20,7 @@ var appHandler http.AppHandler = func(w pkghttp.ResponseWriter, r *pkghttp.Reque
 func ExampleStartHTTPServer() {
 	rootLogger := zerolog.SetDefaultLogger(true)
 
-	handler, err := http.BindHandlerWithLogger(&rootLogger, appHandler)
+	handler, err := http.BindHandlerWithLogger(rootLogger, appHandler)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}

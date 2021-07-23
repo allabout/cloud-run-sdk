@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/ishii1648/cloud-run-sdk/util"
-	"github.com/rs/zerolog"
+	pkgzerolog "github.com/rs/zerolog"
 )
 
 type Middleware func(http.Handler) http.Handler
@@ -17,21 +18,21 @@ func Chain(h http.Handler, middlewares ...Middleware) http.Handler {
 	return h
 }
 
-func InjectLogger(logger *zerolog.Logger, projectID string) Middleware {
+func InjectLogger(l *zerolog.Logger, projectID string) Middleware {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !util.IsCloudRun() {
-				h.ServeHTTP(w, r.WithContext(logger.WithContext(r.Context())))
+				h.ServeHTTP(w, r.WithContext(l.ZeroLogger.WithContext(r.Context())))
 				return
 			}
 
 			if traceID := util.GetTraceIDFromHeader(r.Header.Get("X-Cloud-Trace-Context")); traceID != "" {
-				logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
+				l.ZeroLogger.UpdateContext(func(c pkgzerolog.Context) pkgzerolog.Context {
 					return c.Str("logging.googleapis.com/trace", fmt.Sprintf("projects/%s/traces/%s", projectID, traceID))
 				})
 			}
 
-			h.ServeHTTP(w, r.WithContext(logger.WithContext(r.Context())))
+			h.ServeHTTP(w, r.WithContext(l.ZeroLogger.WithContext(r.Context())))
 		})
 	}
 }

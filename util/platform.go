@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
+	"cloud.google.com/go/compute/metadata"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/run/v1"
 )
@@ -82,4 +84,11 @@ func IsCloudRun() bool {
 	// ref. https://cloud.google.com/run/docs/reference/container-contract#env-vars
 	// Note: we can't use K_SERVICE or K_REVISION since both are also used in Cloud Functions.
 	return os.Getenv("K_CONFIGURATION") != ""
+}
+
+func GetIDToken(addr string) (string, error) {
+	serviceURL := fmt.Sprintf("https://%s", strings.Split(addr, ":")[0])
+	tokenURL := fmt.Sprintf("/instance/service-accounts/default/identity?audience=%s", serviceURL)
+
+	return metadata.Get(tokenURL)
 }

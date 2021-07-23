@@ -60,7 +60,7 @@ func TestNewServer(t *testing.T) {
 func TestServerStart(t *testing.T) {
 	rootLogger := zerolog.SetLogger(os.Stdout, true, false)
 
-	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+	var appHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		fmt.Fprint(w, "hello world")
 		return nil
 	}
@@ -120,7 +120,7 @@ func TestShutdownServerGraceful(t *testing.T) {
 
 	rootLogger := zerolog.SetLogger(os.Stdout, true, false)
 
-	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+	var appHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		ctx := r.Context()
 
 		go func() {
@@ -194,7 +194,7 @@ func TestErrorHandling(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
 
-	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+	var appHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		return &Error{Error: fmt.Errorf("failed something"), Message: "server error", Code: http.StatusInternalServerError}
 	}
 
@@ -255,7 +255,7 @@ func TestErrorHandlingOmitMessage(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
 
-	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
+	var appHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		return &Error{Error: fmt.Errorf("failed something"), Code: http.StatusInternalServerError}
 	}
 

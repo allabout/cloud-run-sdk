@@ -9,7 +9,7 @@ import (
 	"github.com/ishii1648/cloud-run-sdk/util"
 )
 
-var appHandler http.AppHandler = func(w pkghttp.ResponseWriter, r *pkghttp.Request) *http.Error {
+var appHandler = func(w pkghttp.ResponseWriter, r *pkghttp.Request) *http.Error {
 	logger := zerolog.Ctx(r.Context())
 	logger.Debug("debug message")
 	fmt.Fprint(w, "hello world")

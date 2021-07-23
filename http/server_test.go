@@ -17,35 +17,25 @@ import (
 	"github.com/ishii1648/cloud-run-sdk/util"
 )
 
-func TestBindHandlerWithLogger(t *testing.T) {
+func TestNewServer(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
-
-	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", "google-sample-project"); err != nil {
-		t.Fatal(err)
-	}
 
 	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		logger := zerolog.Ctx(r.Context())
 		logger.Info("appHandler")
+
+		if want, got := `{"severity":"INFO","message":"appHandler"}`, strings.ReplaceAll(buf.String(), "\n", ""); want != got {
+			t.Errorf("want %q, got %q", want, got)
+		}
+
 		fmt.Fprint(w, "hello world")
 		return nil
 	}
 
-	var middleware = func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := zerolog.Ctx(r.Context())
-			logger.Info("middleware")
-			h.ServeHTTP(w, r)
-		})
-	}
+	server := NewServer(rootLogger, "google-sample-project")
 
-	handler, err := BindHandlerWithLogger(rootLogger, appHandler, middleware)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ts := httptest.NewServer(handler)
+	ts := httptest.NewServer(Chain(appHandler, server.middlewares...))
 	req, err := http.NewRequest(http.MethodGet, ts.URL, strings.NewReader(""))
 	if err != nil {
 		t.Errorf("NewRequest failed: %v", err)
@@ -62,79 +52,22 @@ func TestBindHandlerWithLogger(t *testing.T) {
 	}
 	resp.Body.Close()
 
-	if want, got := `{"severity":"INFO","message":"middleware"}{"severity":"INFO","message":"appHandler"}`, strings.ReplaceAll(buf.String(), "\n", ""); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
 	if want, got := "hello world", string(respBody); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
-func TestBindHandlerWithLoggerNoMiddleware(t *testing.T) {
-	buf := &bytes.Buffer{}
-	rootLogger := zerolog.SetLogger(buf, true, false)
-
-	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", "google-sample-project"); err != nil {
-		t.Fatal(err)
-	}
-
-	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
-		logger := zerolog.Ctx(r.Context())
-		logger.Info("appHandler")
-		fmt.Fprint(w, "hello world")
-		return nil
-	}
-
-	handler, err := BindHandlerWithLogger(rootLogger, appHandler)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ts := httptest.NewServer(handler)
-	req, err := http.NewRequest(http.MethodGet, ts.URL, strings.NewReader(""))
-	if err != nil {
-		t.Errorf("NewRequest failed: %v", err)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp.Body.Close()
-
-	if want, got := `{"severity":"INFO","message":"appHandler"}`, strings.ReplaceAll(buf.String(), "\n", ""); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-
-	if want, got := "hello world", string(respBody); want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
-func TestStartServer(t *testing.T) {
+func TestServerStart(t *testing.T) {
 	rootLogger := zerolog.SetLogger(os.Stdout, true, false)
 
-	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", "google-sample-project"); err != nil {
-		t.Fatal(err)
-	}
-
 	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		fmt.Fprint(w, "hello world")
 		return nil
 	}
 
-	handler, err := BindHandlerWithLogger(rootLogger, appHandler)
-	if err != nil {
-		t.Fatal(err)
-	}
+	server := NewServer(rootLogger, "google-sample-project")
 
-	go StartHTTPServer("/", handler, util.SetupSignalHandler())
+	go server.Start("/", appHandler, util.SetupSignalHandler())
 
 	port, isSet := os.LookupEnv("PORT")
 	if !isSet {
@@ -187,10 +120,6 @@ func TestShutdownServerGraceful(t *testing.T) {
 
 	rootLogger := zerolog.SetLogger(os.Stdout, true, false)
 
-	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", "google-sample-project"); err != nil {
-		t.Fatal(err)
-	}
-
 	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		ctx := r.Context()
 
@@ -206,17 +135,14 @@ func TestShutdownServerGraceful(t *testing.T) {
 		return nil
 	}
 
-	handler, err := BindHandlerWithLogger(rootLogger, appHandler)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	port := "8081"
 	if err := os.Setenv("PORT", port); err != nil {
 		t.Fatal(err)
 	}
 
-	go StartHTTPServer("/", handler, util.SetupSignalHandler())
+	server := NewServer(rootLogger, "google-sample-project")
+
+	go server.Start("/", appHandler, util.SetupSignalHandler())
 
 	hostAddr, isSet := os.LookupEnv("HOST_ADDR")
 	if !isSet {
@@ -268,17 +194,8 @@ func TestErrorHandling(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
 
-	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", "google-sample-project"); err != nil {
-		t.Fatal(err)
-	}
-
 	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		return &Error{Error: fmt.Errorf("failed something"), Message: "server error", Code: http.StatusInternalServerError}
-	}
-
-	handler, err := BindHandlerWithLogger(rootLogger, appHandler)
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	port := "8082"
@@ -286,7 +203,9 @@ func TestErrorHandling(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	go StartHTTPServer("/", handler, util.SetupSignalHandler())
+	server := NewServer(rootLogger, "google-sample-project")
+
+	go server.Start("/", appHandler, util.SetupSignalHandler())
 
 	hostAddr, isSet := os.LookupEnv("HOST_ADDR")
 	if !isSet {
@@ -336,17 +255,8 @@ func TestErrorHandlingOmitMessage(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
 
-	if err := os.Setenv("GOOGLE_CLOUD_PROJECT", "google-sample-project"); err != nil {
-		t.Fatal(err)
-	}
-
 	var appHandler AppHandler = func(w http.ResponseWriter, r *http.Request) *Error {
 		return &Error{Error: fmt.Errorf("failed something"), Code: http.StatusInternalServerError}
-	}
-
-	handler, err := BindHandlerWithLogger(rootLogger, appHandler)
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	port := "8083"
@@ -354,7 +264,9 @@ func TestErrorHandlingOmitMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	go StartHTTPServer("/", handler, util.SetupSignalHandler())
+	server := NewServer(rootLogger, "google-sample-project")
+
+	go server.Start("/", appHandler, util.SetupSignalHandler())
 
 	hostAddr, isSet := os.LookupEnv("HOST_ADDR")
 	if !isSet {

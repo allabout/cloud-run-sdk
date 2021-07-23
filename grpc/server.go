@@ -40,7 +40,7 @@ func CreateNetworkListener(addr string) (net.Listener, error) {
 	return net.Listen("tcp", hostAddr+":"+port)
 }
 
-func (s *Server) StartServer(lis net.Listener, stopCh <-chan struct{}) {
+func (s *Server) Start(lis net.Listener, stopCh <-chan struct{}) {
 	go func() {
 		if err := s.srv.Serve(lis); err != nil {
 			s.logger.Errorf("server closed with error : %v", err)

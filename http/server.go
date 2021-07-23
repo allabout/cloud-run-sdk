@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
-	"github.com/ishii1648/cloud-run-sdk/util"
-	"github.com/rs/zerolog/log"
 )
 
 type Error struct {
@@ -33,18 +31,13 @@ func (fn AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func BindHandlerWithLogger(rootLogger *zerolog.Logger, h http.Handler, middlewares ...Middleware) (http.Handler, error) {
-	projectID, err := util.FetchProjectID()
-	if err != nil {
-		return nil, err
-	}
-
-	middlewares = append([]Middleware{InjectLogger(rootLogger, projectID)}, middlewares...)
-
-	return Chain(h, middlewares...), nil
+type Server struct {
+	addr        string
+	logger      *zerolog.Logger
+	middlewares []Middleware
 }
 
-func StartHTTPServer(path string, handler http.Handler, stopCh <-chan struct{}) {
+func NewServer(rootLogger *zerolog.Logger, projectID string, middlewares ...Middleware) *Server {
 	port, isSet := os.LookupEnv("PORT")
 	if !isSet {
 		port = "8080"
@@ -55,29 +48,39 @@ func StartHTTPServer(path string, handler http.Handler, stopCh <-chan struct{}) 
 		hostAddr = "0.0.0.0"
 	}
 
+	middlewares = append([]Middleware{InjectLogger(rootLogger, projectID)}, middlewares...)
+
+	return &Server{
+		addr:        hostAddr + ":" + port,
+		logger:      rootLogger,
+		middlewares: middlewares,
+	}
+}
+
+func (s *Server) Start(path string, handler http.Handler, stopCh <-chan struct{}) {
 	mux := http.NewServeMux()
-	mux.Handle(path, handler)
+	mux.Handle(path, Chain(handler, s.middlewares...))
 
 	server := &http.Server{
-		Addr:    hostAddr + ":" + port,
+		Addr:    s.addr,
 		Handler: mux,
 	}
 
 	go func() {
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Error().Msgf("server closed with error : %v", err)
+			s.logger.Errorf("server closed with error : %v", err)
 		}
 	}()
 
 	<-stopCh
 
-	log.Info().Msg("recive SIGTERM or SIGINT")
+	s.logger.Info("recive SIGTERM or SIGINT")
 
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Error().Msgf("failed to shutdown HTTP Server : %v", err)
+		s.logger.Errorf("failed to shutdown HTTP Server : %v", err)
 	}
 
-	log.Info().Msg("HTTP Server shutdowned")
+	s.logger.Info("HTTP Server shutdowned")
 }

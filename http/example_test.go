@@ -7,7 +7,6 @@ import (
 	"github.com/ishii1648/cloud-run-sdk/http"
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/ishii1648/cloud-run-sdk/util"
-	"github.com/rs/zerolog/log"
 )
 
 var appHandler http.AppHandler = func(w pkghttp.ResponseWriter, r *pkghttp.Request) *http.Error {
@@ -17,13 +16,10 @@ var appHandler http.AppHandler = func(w pkghttp.ResponseWriter, r *pkghttp.Reque
 	return nil
 }
 
-func ExampleStartHTTPServer() {
+func ExampleServerStart() {
 	rootLogger := zerolog.SetDefaultLogger(true)
 
-	handler, err := http.BindHandlerWithLogger(rootLogger, appHandler)
-	if err != nil {
-		log.Fatal().Msg(err.Error())
-	}
+	server := http.NewServer(rootLogger, "google-sample-project")
 
-	http.StartHTTPServer("/", handler, util.SetupSignalHandler())
+	server.Start("/", appHandler, util.SetupSignalHandler())
 }

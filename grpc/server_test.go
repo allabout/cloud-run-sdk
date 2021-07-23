@@ -37,7 +37,7 @@ func TestStartServer(t *testing.T) {
 
 	pb.RegisterTestServiceServer(s.srv, interop.NewTestServer())
 
-	go s.StartServer(lis, util.SetupSignalHandler())
+	go s.Start(lis, util.SetupSignalHandler())
 
 	ctx := context.Background()
 	dial := func(context.Context, string) (net.Conn, error) {

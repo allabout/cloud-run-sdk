@@ -35,7 +35,7 @@ func TestStartServer(t *testing.T) {
 	s := NewServer(rootLogger, "google-sample-project", fn)
 	lis := bufconn.Listen(buffsize)
 
-	pb.RegisterTestServiceServer(s.srv, interop.NewTestServer())
+	pb.RegisterTestServiceServer(s.Srv, interop.NewTestServer())
 
 	go s.Start(lis, util.SetupSignalHandler())
 

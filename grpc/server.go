@@ -10,7 +10,7 @@ import (
 )
 
 type Server struct {
-	srv    *grpc.Server
+	Srv    *grpc.Server
 	logger *zerolog.Logger
 }
 
@@ -21,12 +21,12 @@ func NewServer(rootLogger *zerolog.Logger, projectID string, interceptors ...grp
 	reflection.Register(srv)
 
 	return &Server{
-		srv:    srv,
+		Srv:    srv,
 		logger: rootLogger,
 	}
 }
 
-func CreateNetworkListener(addr string) (net.Listener, error) {
+func CreateNetworkListener() (net.Listener, error) {
 	port, isSet := os.LookupEnv("GRPC_PORT")
 	if !isSet {
 		port = "8080"
@@ -42,7 +42,7 @@ func CreateNetworkListener(addr string) (net.Listener, error) {
 
 func (s *Server) Start(lis net.Listener, stopCh <-chan struct{}) {
 	go func() {
-		if err := s.srv.Serve(lis); err != nil {
+		if err := s.Srv.Serve(lis); err != nil {
 			s.logger.Errorf("server closed with error : %v", err)
 		}
 	}()
@@ -51,7 +51,7 @@ func (s *Server) Start(lis net.Listener, stopCh <-chan struct{}) {
 
 	s.logger.Info("recive SIGTERM or SIGINT")
 
-	s.srv.GracefulStop()
+	s.Srv.GracefulStop()
 
 	s.logger.Info("gRPC Server shutdowned")
 }

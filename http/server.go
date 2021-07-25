@@ -32,15 +32,18 @@ func (fn AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type Server struct {
-	addr   string
-	logger *zerolog.Logger
-	mux    *http.ServeMux
-	// default middlewares(eg. logger, inject request id)
+	addr        string
+	logger      *zerolog.Logger
+	mux         *http.ServeMux
 	middlewares []Middleware
 	srv         *http.Server
 }
 
-func NewServer(rootLogger *zerolog.Logger, projectID string) *Server {
+func NewServerWithLogger(rootLogger *zerolog.Logger, projectID string, middlewares ...Middleware) *Server {
+	return NewServer(rootLogger, projectID, append([]Middleware{InjectLogger(rootLogger, projectID)}, middlewares...)...)
+}
+
+func NewServer(rootLogger *zerolog.Logger, projectID string, middlewares ...Middleware) *Server {
 	port, isSet := os.LookupEnv("PORT")
 	if !isSet {
 		port = "8080"
@@ -55,7 +58,7 @@ func NewServer(rootLogger *zerolog.Logger, projectID string) *Server {
 		addr:        hostAddr + ":" + port,
 		logger:      rootLogger,
 		mux:         http.NewServeMux(),
-		middlewares: []Middleware{InjectLogger(rootLogger, projectID)},
+		middlewares: middlewares,
 	}
 }
 

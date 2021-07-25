@@ -9,17 +9,18 @@ import (
 	"github.com/ishii1648/cloud-run-sdk/util"
 )
 
-var appHandler = func(w pkghttp.ResponseWriter, r *pkghttp.Request) *http.Error {
+var fn = func(w pkghttp.ResponseWriter, r *pkghttp.Request) *http.Error {
 	logger := zerolog.Ctx(r.Context())
 	logger.Debug("debug message")
 	fmt.Fprint(w, "hello world")
 	return nil
 }
 
-func ExampleServerStart() {
+func ExampleStart() {
 	rootLogger := zerolog.SetDefaultLogger(true)
 
 	server := http.NewServer(rootLogger, "google-sample-project")
+	server.HandleWithDefaultPath(http.AppHandler(fn))
 
-	server.Start("/", appHandler, util.SetupSignalHandler())
+	server.Start(util.SetupSignalHandler())
 }

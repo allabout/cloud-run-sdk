@@ -32,12 +32,15 @@ func (fn AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type Server struct {
-	addr        string
-	logger      *zerolog.Logger
+	addr   string
+	logger *zerolog.Logger
+	mux    *http.ServeMux
+	// default middlewares(eg. logger, inject request id)
 	middlewares []Middleware
+	srv         *http.Server
 }
 
-func NewServer(rootLogger *zerolog.Logger, projectID string, middlewares ...Middleware) *Server {
+func NewServer(rootLogger *zerolog.Logger, projectID string) *Server {
 	port, isSet := os.LookupEnv("PORT")
 	if !isSet {
 		port = "8080"
@@ -48,39 +51,48 @@ func NewServer(rootLogger *zerolog.Logger, projectID string, middlewares ...Midd
 		hostAddr = "0.0.0.0"
 	}
 
-	middlewares = append([]Middleware{InjectLogger(rootLogger, projectID)}, middlewares...)
-
 	return &Server{
 		addr:        hostAddr + ":" + port,
 		logger:      rootLogger,
-		middlewares: middlewares,
+		mux:         http.NewServeMux(),
+		middlewares: []Middleware{InjectLogger(rootLogger, projectID)},
 	}
 }
 
-func (s *Server) Start(path string, handler AppHandler, stopCh <-chan struct{}) {
-	mux := http.NewServeMux()
-	mux.Handle(path, Chain(handler, s.middlewares...))
+func (s *Server) HandleWithDefaultPath(h http.Handler, middlewares ...Middleware) {
+	s.Handle("/", h, middlewares...)
+}
 
-	server := &http.Server{
+func (s *Server) Handle(path string, h http.Handler, middlewares ...Middleware) {
+	var chainedHandler http.Handler
+	if len(middlewares) > 0 {
+		chainedHandler = Chain(h, middlewares...)
+	} else {
+		chainedHandler = Chain(h, s.middlewares...)
+	}
+	s.mux.Handle(path, chainedHandler)
+}
+
+func (s *Server) Start(stopCh <-chan struct{}) {
+	s.srv = &http.Server{
 		Addr:    s.addr,
-		Handler: mux,
+		Handler: s.mux,
 	}
 
 	go func() {
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+		if err := s.srv.ListenAndServe(); err != http.ErrServerClosed {
 			s.logger.Errorf("server closed with error : %v", err)
 		}
 	}()
 
 	<-stopCh
-
 	s.logger.Info("recive SIGTERM or SIGINT")
 
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := s.srv.Shutdown(ctx); err != nil {
 		s.logger.Errorf("failed to shutdown HTTP Server : %v", err)
 	}
 
-	s.logger.Info("HTTP Server shutdowned")
+	s.logger.Debug("HTTP Server shutdowned")
 }

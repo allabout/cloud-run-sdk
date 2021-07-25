@@ -22,7 +22,7 @@ func TestNewServer(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
 
-	server := NewServer(rootLogger, "google-sample-project")
+	server := NewServerWithLogger(rootLogger, "google-sample-project")
 
 	var fn = func(w http.ResponseWriter, r *http.Request) *Error {
 		logger := zerolog.Ctx(r.Context())
@@ -68,7 +68,7 @@ func TestHandleWithDefaultPath(t *testing.T) {
 		return nil
 	}
 
-	server := NewServer(rootLogger, "google-sample-project")
+	server := NewServerWithLogger(rootLogger, "google-sample-project")
 	server.HandleWithDefaultPath(AppHandler(fn))
 
 	req, err := http.NewRequest(http.MethodGet, "http://"+server.addr+"/", strings.NewReader(""))
@@ -210,7 +210,7 @@ func TestHandle(t *testing.T) {
 		buf := &bytes.Buffer{}
 		rootLogger := zerolog.SetLogger(buf, true, false)
 
-		server := NewServer(rootLogger, "google-sample-project")
+		server := NewServerWithLogger(rootLogger, "google-sample-project")
 
 		for _, me := range tt.muxEntrys {
 			server.Handle(me.pattern, me.handler)
@@ -259,7 +259,7 @@ func TestStart(t *testing.T) {
 		return nil
 	}
 
-	server := NewServer(rootLogger, "google-sample-project")
+	server := NewServerWithLogger(rootLogger, "google-sample-project")
 	server.Handle("/", AppHandler(rootFn))
 
 	var mu sync.Mutex

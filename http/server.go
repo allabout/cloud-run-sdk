@@ -62,17 +62,12 @@ func NewServer(rootLogger *zerolog.Logger, projectID string, middlewares ...Midd
 	}
 }
 
-func (s *Server) HandleWithDefaultPath(h http.Handler, middlewares ...Middleware) {
+func (s *Server) HandleWithRoot(h http.Handler, middlewares ...Middleware) {
 	s.Handle("/", h, middlewares...)
 }
 
 func (s *Server) Handle(path string, h http.Handler, middlewares ...Middleware) {
-	var chainedHandler http.Handler
-	if len(middlewares) > 0 {
-		chainedHandler = Chain(h, middlewares...)
-	} else {
-		chainedHandler = Chain(h, s.middlewares...)
-	}
+	chainedHandler := Chain(h, append(s.middlewares, middlewares...)...)
 	s.mux.Handle(path, chainedHandler)
 }
 

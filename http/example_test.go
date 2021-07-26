@@ -20,7 +20,7 @@ func ExampleStart() {
 	rootLogger := zerolog.SetDefaultLogger(true)
 
 	server := http.NewServerWithLogger(rootLogger, "google-sample-project")
-	server.HandleWithDefaultPath(http.AppHandler(fn))
+	server.HandleWithRoot(http.AppHandler(fn))
 
 	server.Start(util.SetupSignalHandler())
 }

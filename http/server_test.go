@@ -18,7 +18,7 @@ import (
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 )
 
-func TestNewServer(t *testing.T) {
+func TestNewServerWithLogger(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
 
@@ -58,18 +58,23 @@ func TestNewServer(t *testing.T) {
 	if want, got := "ok", string(respBody); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
+	if want, got := `{"severity":"INFO","message":"appHandler"}`+"\n", buf.String(); want != got {
+		t.Errorf("want %q, got %q", want, got)
+	}
 }
 
-func TestHandleWithDefaultPath(t *testing.T) {
+func TestHandleWithRoot(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
 
 	var fn = func(w http.ResponseWriter, r *http.Request) *Error {
+		zerolog.Ctx(r.Context()).Info("message")
 		return nil
 	}
 
 	server := NewServerWithLogger(rootLogger, "google-sample-project")
-	server.HandleWithDefaultPath(AppHandler(fn))
+	// server.HandleWithRoot(AppHandler(fn))
+	server.Handle("/", AppHandler(fn), InjectLogger(rootLogger, "google-sample-project"))
 
 	req, err := http.NewRequest(http.MethodGet, "http://"+server.addr+"/", strings.NewReader(""))
 	if err != nil {
@@ -84,6 +89,9 @@ func TestHandleWithDefaultPath(t *testing.T) {
 	if want, got := reflect.Func, reflect.TypeOf(handler).Kind(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
+	// if want, got := `{"severity":"INFO","message":"message"}`+"\n", buf.String(); want != got {
+	// 	t.Errorf("want %q, got %q", want, got)
+	// }
 }
 
 func TestHandle(t *testing.T) {

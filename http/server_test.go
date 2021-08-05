@@ -74,7 +74,7 @@ func TestHandleWithRoot(t *testing.T) {
 
 	server := NewServerWithLogger(rootLogger, "google-sample-project")
 	// server.HandleWithRoot(AppHandler(fn))
-	server.Handle("/", AppHandler(fn), InjectLogger(rootLogger, "google-sample-project"))
+	server.HandleWithMiddleware("/", AppHandler(fn), InjectLogger(rootLogger, "google-sample-project"))
 
 	req, err := http.NewRequest(http.MethodGet, "http://"+server.addr+"/", strings.NewReader(""))
 	if err != nil {

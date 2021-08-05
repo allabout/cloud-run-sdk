@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
@@ -38,4 +39,16 @@ func AuthInterceptor(idToken string) grpc.UnaryClientInterceptor {
 
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}
+}
+
+func TraceIDInterceptor(ctx context.Context, method string, req interface{}, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	traceID, ok := ctx.Value("x-cloud-trace-context").(string)
+	if !ok {
+		return errors.New("traceID not found")
+	}
+
+	md := metadata.New(map[string]string{"x-cloud-trace-context": traceID})
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	return invoker(ctx, method, req, reply, cc, opts...)
 }

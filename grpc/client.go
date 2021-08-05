@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 
@@ -10,22 +11,7 @@ import (
 )
 
 // addr 127.0.0.1:443
-func NewConn(addr string, localhost bool) (*grpc.ClientConn, error) {
-	if localhost {
-		conn, err := grpc.Dial(
-			addr,
-			grpc.WithInsecure(),
-		)
-		if err != nil {
-			return nil, err
-		}
-		return conn, nil
-	}
-
-	return newTLSConn(addr)
-}
-
-func newTLSConn(addr string) (*grpc.ClientConn, error) {
+func NewTLSConn(ctx context.Context, addr string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	systemRoots, err := x509.SystemCertPool()
 	if err != nil {
 		return nil, err
@@ -40,14 +26,12 @@ func newTLSConn(addr string) (*grpc.ClientConn, error) {
 		return nil, err
 	}
 
-	conn, err := grpc.Dial(
-		addr,
+	opts = append([]grpc.DialOption{
 		grpc.WithAuthority(addr),
 		grpc.WithTransportCredentials(cred),
-		grpc.WithUnaryInterceptor(AuthInterceptor(idToken)),
+		grpc.WithUnaryInterceptor(AuthInterceptor(idToken))},
+		opts...,
 	)
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
+
+	return grpc.DialContext(ctx, addr, opts...)
 }

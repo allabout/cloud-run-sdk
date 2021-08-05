@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -26,13 +27,22 @@ func InjectLogger(l *zerolog.Logger, projectID string) Middleware {
 				return
 			}
 
-			if traceID := util.GetTraceIDFromHeader(r.Header.Get("X-Cloud-Trace-Context")); traceID != "" {
+			xCloudTraceContext := r.Header.Get("X-Cloud-Trace-Context")
+			if xCloudTraceContext == "" {
+				h.ServeHTTP(w, r.WithContext(l.ZeroLogger.WithContext(r.Context())))
+				return
+			}
+
+			if traceID := util.GetTraceIDFromHeader(xCloudTraceContext); traceID != "" {
 				l.ZeroLogger.UpdateContext(func(c pkgzerolog.Context) pkgzerolog.Context {
 					return c.Str("logging.googleapis.com/trace", fmt.Sprintf("projects/%s/traces/%s", projectID, traceID))
 				})
 			}
 
-			h.ServeHTTP(w, r.WithContext(l.ZeroLogger.WithContext(r.Context())))
+			r = r.WithContext(l.ZeroLogger.WithContext(r.Context()))
+			r = r.WithContext(context.WithValue(r.Context(), "x-cloud-trace-context", xCloudTraceContext))
+
+			h.ServeHTTP(w, r)
 		})
 	}
 }

@@ -141,3 +141,44 @@ func TestErrorf(t *testing.T) {
 		buffer = &bytes.Buffer{}
 	}
 }
+
+func TestWarn(t *testing.T) {
+	for _, tt := range []struct {
+		args string
+		want string
+	}{
+		{"warning message", `{"severity":"WARNING","message":"warning message"}`},
+		{"", `{"severity":"WARNING"}`},
+	} {
+		logger := SetLogger(buffer, true, false)
+
+		logger.Warn(tt.args)
+		output := strings.TrimRight(buffer.String(), "\n")
+		if output != tt.want {
+			t.Errorf("Error(%s) = %q, want = %q", tt.args, output, tt.want)
+		}
+
+		buffer = &bytes.Buffer{}
+	}
+}
+
+func TestWarnf(t *testing.T) {
+	for _, tt := range []struct {
+		format string
+		args   interface{}
+		want   string
+	}{
+		{"%s", "warning message", `{"severity":"WARNING","message":"warning message"}`},
+		{"%v", "", `{"severity":"WARNING"}`},
+	} {
+		logger := SetLogger(buffer, true, false)
+
+		logger.Warnf(tt.format, tt.args)
+		output := strings.TrimRight(buffer.String(), "\n")
+		if output != tt.want {
+			t.Errorf("Error(%s, %v) = %q, want = %q", tt.format, tt.args, output, tt.want)
+		}
+
+		buffer = &bytes.Buffer{}
+	}
+}

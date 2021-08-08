@@ -45,6 +45,13 @@ func TestAppHandlerServeHTTP(t *testing.T) {
 			wantResp: `{"code":500,"message":"Internal Server Error"}`,
 			wantLog:  `{"severity":"ERROR","message":"internal server's logic is wrong"}`,
 		},
+		{
+			handler: AppHandler(func(w http.ResponseWriter, r *http.Request) *AppError {
+				return Errorf(http.StatusInternalServerError, "server error : %s", "failed to connect db")
+			}),
+			wantResp: `{"code":500,"message":"Internal Server Error"}`,
+			wantLog:  `{"severity":"ERROR","message":"server error : failed to connect db"}`,
+		},
 	}
 
 	for _, tt := range tests {

@@ -44,10 +44,12 @@ func SetLogger(w io.Writer, debug, isSourceLocation bool) *Logger {
 					return "DEBUG"
 				case zerolog.InfoLevel:
 					return "INFO"
+				case zerolog.WarnLevel:
+					return "WARNING"
 				case zerolog.ErrorLevel:
 					return "ERROR"
 				default:
-					return "INFO"
+					return "UNKOWN"
 				}
 			}
 		}
@@ -81,6 +83,14 @@ func (l *Logger) Info(args ...interface{}) {
 
 func (l *Logger) Infof(format string, args ...interface{}) {
 	l.ZeroLogger.Info().Msgf(format, args...)
+}
+
+func (l *Logger) Warn(args ...interface{}) {
+	l.ZeroLogger.Warn().Msg(fmt.Sprint(args...))
+}
+
+func (l *Logger) Warnf(format string, args ...interface{}) {
+	l.ZeroLogger.Warn().Msgf(format, args...)
 }
 
 func (l *Logger) Error(args ...interface{}) {

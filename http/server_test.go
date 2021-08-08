@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -18,33 +17,70 @@ import (
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 )
 
+func TestAppHandlerServeHTTP(t *testing.T) {
+	tests := []struct {
+		handler  AppHandler
+		wantResp string
+		wantLog  string
+	}{
+		{
+			handler: AppHandler(func(w http.ResponseWriter, r *http.Request) *AppError {
+				w.Write([]byte("ok"))
+				return nil
+			}),
+			wantResp: "ok",
+			wantLog:  "",
+		},
+		{
+			handler: AppHandler(func(w http.ResponseWriter, r *http.Request) *AppError {
+				return Error(http.StatusBadRequest, "your input is wrong")
+			}),
+			wantResp: `{"code":400,"message":"your input is wrong"}`,
+			wantLog:  `{"severity":"WARNING","message":"your input is wrong"}`,
+		},
+		{
+			handler: AppHandler(func(w http.ResponseWriter, r *http.Request) *AppError {
+				return Error(http.StatusInternalServerError, "internal server's logic is wrong")
+			}),
+			wantResp: `{"code":500,"message":"Internal Server Error"}`,
+			wantLog:  `{"severity":"ERROR","message":"internal server's logic is wrong"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		buf := &bytes.Buffer{}
+		rootLogger := zerolog.SetLogger(buf, true, false)
+		got := httptest.NewRecorder()
+
+		Chain(tt.handler, InjectLogger(rootLogger, "sample-google-project")).ServeHTTP(got, httptest.NewRequest(http.MethodGet, "/", nil))
+
+		if want, got := tt.wantResp, strings.Trim(got.Body.String(), "\n"); want != got {
+			t.Errorf("want %q, got %q", want, got)
+		}
+
+		if want, got := tt.wantLog, strings.Trim(buf.String(), "\n"); want != got {
+			t.Errorf("want %q, got %q", want, got)
+		}
+	}
+}
+
 func TestNewServerWithLogger(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
 
 	server := NewServerWithLogger(rootLogger, "google-sample-project")
 
-	var fn = func(w http.ResponseWriter, r *http.Request) *Error {
+	var fn = func(w http.ResponseWriter, r *http.Request) *AppError {
 		logger := zerolog.Ctx(r.Context())
 		logger.Info("appHandler")
-
-		if want, got := `{"severity":"INFO","message":"appHandler"}`, strings.ReplaceAll(buf.String(), "\n", ""); want != got {
-			t.Errorf("want %q, got %q", want, got)
-		}
-
-		fmt.Fprint(w, "ok")
+		w.Write([]byte("ok"))
 		return nil
 	}
 
 	ts := httptest.NewServer(Chain(AppHandler(fn), server.middlewares...))
 	defer ts.Close()
 
-	req, err := http.NewRequest(http.MethodGet, ts.URL, strings.NewReader(""))
-	if err != nil {
-		t.Errorf("NewRequest failed: %v", err)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Get(ts.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +91,7 @@ func TestNewServerWithLogger(t *testing.T) {
 	}
 	resp.Body.Close()
 
-	if want, got := "ok", string(respBody); want != got {
+	if want, got := "ok", strings.Trim(string(respBody), "\n"); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 	if want, got := `{"severity":"INFO","message":"appHandler"}`+"\n", buf.String(); want != got {
@@ -67,13 +103,12 @@ func TestHandleWithRoot(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
 
-	var fn = func(w http.ResponseWriter, r *http.Request) *Error {
+	var fn = func(w http.ResponseWriter, r *http.Request) *AppError {
 		zerolog.Ctx(r.Context()).Info("message")
 		return nil
 	}
 
 	server := NewServerWithLogger(rootLogger, "google-sample-project")
-	// server.HandleWithRoot(AppHandler(fn))
 	server.HandleWithMiddleware("/", AppHandler(fn), InjectLogger(rootLogger, "google-sample-project"))
 
 	req, err := http.NewRequest(http.MethodGet, "http://"+server.addr+"/", strings.NewReader(""))
@@ -89,13 +124,10 @@ func TestHandleWithRoot(t *testing.T) {
 	if want, got := reflect.Func, reflect.TypeOf(handler).Kind(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
-	// if want, got := `{"severity":"INFO","message":"message"}`+"\n", buf.String(); want != got {
-	// 	t.Errorf("want %q, got %q", want, got)
-	// }
 }
 
 func TestHandle(t *testing.T) {
-	var rootFn = func(w http.ResponseWriter, r *http.Request) *Error {
+	var rootFn = func(w http.ResponseWriter, r *http.Request) *AppError {
 		if _, ok := r.Context().Value("middleware").(bool); ok {
 			fmt.Fprint(w, "passed middleware")
 		} else {
@@ -104,17 +136,9 @@ func TestHandle(t *testing.T) {
 		return nil
 	}
 
-	var subFn = func(w http.ResponseWriter, r *http.Request) *Error {
+	var subFn = func(w http.ResponseWriter, r *http.Request) *AppError {
 		fmt.Fprint(w, "sub")
 		return nil
-	}
-
-	var errorFn = func(w http.ResponseWriter, r *http.Request) *Error {
-		return &Error{
-			Error:   errors.New("occur error"),
-			Message: "server error",
-			Code:    http.StatusInternalServerError,
-		}
 	}
 
 	var mw = func(h http.Handler) http.Handler {
@@ -185,21 +209,6 @@ func TestHandle(t *testing.T) {
 		{
 			muxEntrys: []muxEntry{
 				{
-					handler: AppHandler(errorFn),
-					pattern: "/error",
-				},
-			},
-			requestEntrys: []requestEntry{
-				{
-					requestPath:    "/error",
-					wantStatusCode: http.StatusInternalServerError,
-					wantMsg:        "server error\n",
-				},
-			},
-		},
-		{
-			muxEntrys: []muxEntry{
-				{
 					handler: Chain(AppHandler(rootFn), mw),
 					pattern: "/middleware",
 				},
@@ -262,7 +271,7 @@ func TestStart(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, false, false)
 
-	var rootFn = func(w http.ResponseWriter, r *http.Request) *Error {
+	var rootFn = func(w http.ResponseWriter, r *http.Request) *AppError {
 		fmt.Fprint(w, "root")
 		return nil
 	}

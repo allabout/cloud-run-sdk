@@ -2,6 +2,8 @@ package http
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -9,25 +11,50 @@ import (
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 )
 
-type Error struct {
-	// error message for cloud run administator
-	Error error
-	// error message for client user
-	Message string
-	// http status code for client user
-	Code int
-}
-
 // It's usually a mistake to pass back the concrete type of an error rather than error,
 // because it can make it difficult to catch errors,
 // but it's the right thing to do here because ServeHTTP is the only place that sees the value and uses its contents.
-type AppHandler func(http.ResponseWriter, *http.Request) *Error
+type AppError struct {
+	// http status code for client user
+	Code int `json:"code"`
+	// error message in HTTP Server
+	Message string `json:"message"`
+}
+
+func Error(code int, msg string) *AppError {
+	return &AppError{Code: code, Message: msg}
+}
+
+func Errorf(code int, format string, a ...interface{}) *AppError {
+	return Error(code, fmt.Sprintf(format, a...))
+}
+
+func (e *AppError) Error() string {
+	return e.Message
+}
+
+// AppHandler is responsible for error handling about 4xx, 5xx errors.
+// If you want to handle error in your own way, you can create and use your own handler.
+type AppHandler func(http.ResponseWriter, *http.Request) *AppError
 
 func (fn AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	encoder := json.NewEncoder(w)
+	logger := zerolog.Ctx(r.Context())
+
 	if err := fn(w, r); err != nil {
-		logger := zerolog.Ctx(r.Context())
-		logger.Errorf("error : %v", err)
-		http.Error(w, err.Message, err.Code)
+		switch {
+		case http.StatusBadRequest >= err.Code:
+			logger.Warn(err.Error())
+		case http.StatusInternalServerError >= err.Code:
+			logger.Errorf(err.Error())
+			// when 5xx error occured, error detail hides to client
+			err.Message = http.StatusText(err.Code)
+		}
+
+		w.WriteHeader(err.Code)
+		if err := encoder.Encode(err); err != nil {
+			logger.Error(err)
+		}
 	}
 }
 

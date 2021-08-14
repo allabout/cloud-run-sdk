@@ -1,19 +1,17 @@
 package http_test
 
 import (
-	"fmt"
-	pkghttp "net/http"
+	"context"
 
 	"github.com/ishii1648/cloud-run-sdk/http"
 	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
 	"github.com/ishii1648/cloud-run-sdk/util"
 )
 
-var fn = func(w pkghttp.ResponseWriter, r *pkghttp.Request) *http.AppError {
-	logger := zerolog.Ctx(r.Context())
+var fn = func(ctx context.Context) ([]byte, *http.AppError) {
+	logger := zerolog.Ctx(ctx)
 	logger.Debug("debug message")
-	fmt.Fprint(w, "hello world")
-	return nil
+	return []byte("hello world"), nil
 }
 
 func ExampleStart() {

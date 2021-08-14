@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -24,30 +23,29 @@ func TestAppHandlerServeHTTP(t *testing.T) {
 		wantLog  string
 	}{
 		{
-			handler: AppHandler(func(w http.ResponseWriter, r *http.Request) *AppError {
-				w.Write([]byte("ok"))
-				return nil
+			handler: AppHandler(func(ctx context.Context) ([]byte, *AppError) {
+				return []byte("ok"), nil
 			}),
 			wantResp: "ok",
 			wantLog:  "",
 		},
 		{
-			handler: AppHandler(func(w http.ResponseWriter, r *http.Request) *AppError {
-				return Error(http.StatusBadRequest, "your input is wrong")
+			handler: AppHandler(func(ctx context.Context) ([]byte, *AppError) {
+				return nil, Error(http.StatusBadRequest, "your input is wrong")
 			}),
 			wantResp: `{"code":400,"message":"your input is wrong"}`,
 			wantLog:  `{"severity":"WARNING","message":"your input is wrong"}`,
 		},
 		{
-			handler: AppHandler(func(w http.ResponseWriter, r *http.Request) *AppError {
-				return Error(http.StatusInternalServerError, "internal server's logic is wrong")
+			handler: AppHandler(func(ctx context.Context) ([]byte, *AppError) {
+				return nil, Error(http.StatusInternalServerError, "internal server's logic is wrong")
 			}),
 			wantResp: `{"code":500,"message":"Internal Server Error"}`,
 			wantLog:  `{"severity":"ERROR","message":"internal server's logic is wrong"}`,
 		},
 		{
-			handler: AppHandler(func(w http.ResponseWriter, r *http.Request) *AppError {
-				return Errorf(http.StatusInternalServerError, "server error : %s", "failed to connect db")
+			handler: AppHandler(func(ctx context.Context) ([]byte, *AppError) {
+				return nil, Errorf(http.StatusInternalServerError, "server error : %s", "failed to connect db")
 			}),
 			wantResp: `{"code":500,"message":"Internal Server Error"}`,
 			wantLog:  `{"severity":"ERROR","message":"server error : failed to connect db"}`,
@@ -77,11 +75,10 @@ func TestNewServerWithLogger(t *testing.T) {
 
 	server := NewServerWithLogger(rootLogger, "google-sample-project")
 
-	var fn = func(w http.ResponseWriter, r *http.Request) *AppError {
-		logger := zerolog.Ctx(r.Context())
+	var fn = func(ctx context.Context) ([]byte, *AppError) {
+		logger := zerolog.Ctx(ctx)
 		logger.Info("appHandler")
-		w.Write([]byte("ok"))
-		return nil
+		return []byte("ok"), nil
 	}
 
 	ts := httptest.NewServer(Chain(AppHandler(fn), server.middlewares...))
@@ -110,9 +107,9 @@ func TestHandleWithRoot(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, true, false)
 
-	var fn = func(w http.ResponseWriter, r *http.Request) *AppError {
-		zerolog.Ctx(r.Context()).Info("message")
-		return nil
+	var fn = func(ctx context.Context) ([]byte, *AppError) {
+		zerolog.Ctx(ctx).Info("message")
+		return nil, nil
 	}
 
 	server := NewServerWithLogger(rootLogger, "google-sample-project")
@@ -134,18 +131,16 @@ func TestHandleWithRoot(t *testing.T) {
 }
 
 func TestHandle(t *testing.T) {
-	var rootFn = func(w http.ResponseWriter, r *http.Request) *AppError {
-		if _, ok := r.Context().Value("middleware").(bool); ok {
-			fmt.Fprint(w, "passed middleware")
+	var rootFn = func(ctx context.Context) ([]byte, *AppError) {
+		if _, ok := ctx.Value("middleware").(bool); ok {
+			return []byte("passed middleware"), nil
 		} else {
-			fmt.Fprint(w, "root")
+			return []byte("root"), nil
 		}
-		return nil
 	}
 
-	var subFn = func(w http.ResponseWriter, r *http.Request) *AppError {
-		fmt.Fprint(w, "sub")
-		return nil
+	var subFn = func(ctx context.Context) ([]byte, *AppError) {
+		return []byte("sub"), nil
 	}
 
 	var mw = func(h http.Handler) http.Handler {
@@ -278,9 +273,8 @@ func TestStart(t *testing.T) {
 	buf := &bytes.Buffer{}
 	rootLogger := zerolog.SetLogger(buf, false, false)
 
-	var rootFn = func(w http.ResponseWriter, r *http.Request) *AppError {
-		fmt.Fprint(w, "root")
-		return nil
+	var rootFn = func(ctx context.Context) ([]byte, *AppError) {
+		return []byte("root"), nil
 	}
 
 	server := NewServerWithLogger(rootLogger, "google-sample-project")

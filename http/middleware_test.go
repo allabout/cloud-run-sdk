@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -34,10 +35,10 @@ func TestInjectLogger(t *testing.T) {
 				req.Header.Add("X-Cloud-Trace-Context", "0123456789abcdef0123456789abcdef/123;o=1")
 				return req
 			},
-			appHandler: func(w http.ResponseWriter, r *http.Request) *AppError {
-				logger := zerolog.Ctx(r.Context())
+			appHandler: func(ctx context.Context) ([]byte, *AppError) {
+				logger := zerolog.Ctx(ctx)
 				logger.Info("info message")
-				return nil
+				return nil, nil
 			},
 			want: logEntry{
 				Severity: "INFO",
@@ -55,11 +56,11 @@ func TestInjectLogger(t *testing.T) {
 				req.Header.Add("X-Cloud-Trace-Context", "0123456789abcdef0123456789/123;o=1")
 				return req
 			},
-			appHandler: func(w http.ResponseWriter, r *http.Request) *AppError {
-				logger := zerolog.Ctx(r.Context())
+			appHandler: func(ctx context.Context) ([]byte, *AppError) {
+				logger := zerolog.Ctx(ctx)
 				logger.Debug("debug message") // Debug log is ignored
 				logger.Info("info message")
-				return nil
+				return nil, nil
 			},
 			want: logEntry{
 				Severity: "INFO",
@@ -77,10 +78,10 @@ func TestInjectLogger(t *testing.T) {
 				req.Header.Add("X-Cloud-Trace-Context", "0123456789abcdef/123;o=1")
 				return req
 			},
-			appHandler: func(w http.ResponseWriter, r *http.Request) *AppError {
-				logger := zerolog.Ctx(r.Context())
+			appHandler: func(ctx context.Context) ([]byte, *AppError) {
+				logger := zerolog.Ctx(ctx)
 				logger.Debug("debug message")
-				return nil
+				return nil, nil
 			},
 			want: logEntry{
 				Severity: "DEBUG",

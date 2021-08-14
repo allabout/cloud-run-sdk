@@ -100,3 +100,11 @@ func (l *Logger) Error(args ...interface{}) {
 func (l *Logger) Errorf(format string, args ...interface{}) {
 	l.ZeroLogger.Error().Msgf(format, args...)
 }
+
+func (l *Logger) Fatal(args ...interface{}) {
+	l.ZeroLogger.Fatal().Msg(fmt.Sprint(args...))
+}
+
+func (l *Logger) Fatalf(format string, args ...interface{}) {
+	l.ZeroLogger.Fatal().Msgf(format, args...)
+}

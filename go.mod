@@ -1,4 +1,4 @@
-module github.com/ishii1648/cloud-run-sdk
+module github.com/allabout/cloud-run-sdk
 
 go 1.15
 

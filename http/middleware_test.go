@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
+	"github.com/allabout/cloud-run-sdk/logging/zerolog"
 )
 
 type logEntry struct {

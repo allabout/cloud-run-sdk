@@ -1,4 +1,4 @@
-# cloud-run-sdk [![ci](https://github.com/ishii1648/cloud-run-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/ishii1648/cloud-run-sdk/actions/workflows/ci.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/ishii1648/cloud-run-sdk)](https://goreportcard.com/report/github.com/ishii1648/cloud-run-sdk) [![codecov](https://codecov.io/gh/ishii1648/cloud-run-sdk/branch/main/graph/badge.svg?token=EJC5ZR10DH)](https://codecov.io/gh/ishii1648/cloud-run-sdk)
+# cloud-run-sdk
 
 The lightweight SDK Library for Cloud Run(Google Cloud).
 
@@ -20,9 +20,9 @@ import (
 	pkghttp "net/http"
 	"os"
 
-	"github.com/ishii1648/cloud-run-sdk/http"
-	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
-	"github.com/ishii1648/cloud-run-sdk/util"
+	"github.com/allabout/cloud-run-sdk/http"
+	"github.com/allabout/cloud-run-sdk/logging/zerolog"
+	"github.com/allabout/cloud-run-sdk/util"
 	"github.com/rs/zerolog/log"
 )
 

@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/ishii1648/cloud-run-sdk/util"
+	"github.com/allabout/cloud-run-sdk/util"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

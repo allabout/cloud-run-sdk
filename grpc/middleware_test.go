@@ -5,7 +5,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
+	"github.com/allabout/cloud-run-sdk/logging/zerolog"
 	"google.golang.org/grpc"
 )
 

@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
+	"github.com/allabout/cloud-run-sdk/logging/zerolog"
 )
 
 // It's usually a mistake to pass back the concrete type of an error rather than error,

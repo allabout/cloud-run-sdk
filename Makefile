@@ -10,7 +10,7 @@ test-coverage:
 godoc:
 	godoc -http=:6060&
 	sleep 1
-	open http://localhost:6060/pkg/github.com/ishii1648/cloud-run-sdk/
+	open http://localhost:6060/pkg/github.com/allabout/cloud-run-sdk/
 
 .PHONY: stop-godoc
 stop-godoc:

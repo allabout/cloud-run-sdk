@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
-	"github.com/ishii1648/cloud-run-sdk/util"
+	"github.com/allabout/cloud-run-sdk/logging/zerolog"
+	"github.com/allabout/cloud-run-sdk/util"
 )
 
 type Middleware func(http.Handler) http.Handler

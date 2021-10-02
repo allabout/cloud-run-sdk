@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 
-	"github.com/ishii1648/cloud-run-sdk/util"
+	"github.com/allabout/cloud-run-sdk/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

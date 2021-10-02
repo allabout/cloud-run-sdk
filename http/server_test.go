@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ishii1648/cloud-run-sdk/logging/zerolog"
+	"github.com/allabout/cloud-run-sdk/logging/zerolog"
 )
 
 func TestAppHandlerServeHTTP(t *testing.T) {

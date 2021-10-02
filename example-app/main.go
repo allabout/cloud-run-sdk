@@ -1,4 +1,4 @@
-package http_test
+package main
 
 import (
 	"context"
@@ -11,13 +11,14 @@ import (
 var fn = func(ctx context.Context) ([]byte, *http.AppError) {
 	logger := zerolog.Ctx(ctx)
 	logger.Debug("debug message")
+	logger.Info("info message")
 	return []byte("hello world"), nil
 }
 
-func ExampleStart() {
-	rootLogger := zerolog.SetDefaultLogger(true)
+func main() {
+	zerolog.SetDefaultSharedLogger(true)
 
-	server := http.NewServerWithLogger(rootLogger, "google-sample-project")
+	server := http.NewServerWithLogger("google-sample-project")
 	server.HandleWithRoot(http.AppHandler(fn))
 
 	server.Start(util.SetupSignalHandler())

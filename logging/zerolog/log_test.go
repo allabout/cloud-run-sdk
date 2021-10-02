@@ -27,7 +27,9 @@ func TestDebug(t *testing.T) {
 		{"debug message", `{"severity":"DEBUG","message":"debug message"}`},
 		{"", `{"severity":"DEBUG"}`},
 	} {
-		logger := SetLogger(buffer, true, false)
+		SetSharedLogger(buffer, true, false)
+		sharedLogger := GetSharedLogger()
+		logger := NewLogger(sharedLogger)
 
 		logger.Debug(tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -48,7 +50,9 @@ func TestDebugf(t *testing.T) {
 		{"%s", "debug message", `{"severity":"DEBUG","message":"debug message"}`},
 		{"%v", "", `{"severity":"DEBUG"}`},
 	} {
-		logger := SetLogger(buffer, true, false)
+		SetSharedLogger(buffer, true, false)
+		sharedLogger := GetSharedLogger()
+		logger := NewLogger(sharedLogger)
 
 		logger.Debugf(tt.format, tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -68,7 +72,9 @@ func TestInfo(t *testing.T) {
 		{"info message", `{"severity":"INFO","message":"info message"}`},
 		{"", `{"severity":"INFO"}`},
 	} {
-		logger := SetLogger(buffer, true, false)
+		SetSharedLogger(buffer, true, false)
+		sharedLogger := GetSharedLogger()
+		logger := NewLogger(sharedLogger)
 
 		logger.Info(tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -89,7 +95,9 @@ func TestInfof(t *testing.T) {
 		{"%s", "info message", `{"severity":"INFO","message":"info message"}`},
 		{"%v", "", `{"severity":"INFO"}`},
 	} {
-		logger := SetLogger(buffer, true, false)
+		SetSharedLogger(buffer, true, false)
+		sharedLogger := GetSharedLogger()
+		logger := NewLogger(sharedLogger)
 
 		logger.Infof(tt.format, tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -109,7 +117,9 @@ func TestError(t *testing.T) {
 		{"error message", `{"severity":"ERROR","message":"error message"}`},
 		{"", `{"severity":"ERROR"}`},
 	} {
-		logger := SetLogger(buffer, true, false)
+		SetSharedLogger(buffer, true, false)
+		sharedLogger := GetSharedLogger()
+		logger := NewLogger(sharedLogger)
 
 		logger.Error(tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -130,7 +140,9 @@ func TestErrorf(t *testing.T) {
 		{"%s", "error message", `{"severity":"ERROR","message":"error message"}`},
 		{"%v", "", `{"severity":"ERROR"}`},
 	} {
-		logger := SetLogger(buffer, true, false)
+		SetSharedLogger(buffer, true, false)
+		sharedLogger := GetSharedLogger()
+		logger := NewLogger(sharedLogger)
 
 		logger.Errorf(tt.format, tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -150,7 +162,9 @@ func TestWarn(t *testing.T) {
 		{"warning message", `{"severity":"WARNING","message":"warning message"}`},
 		{"", `{"severity":"WARNING"}`},
 	} {
-		logger := SetLogger(buffer, true, false)
+		SetSharedLogger(buffer, true, false)
+		sharedLogger := GetSharedLogger()
+		logger := NewLogger(sharedLogger)
 
 		logger.Warn(tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")
@@ -171,7 +185,9 @@ func TestWarnf(t *testing.T) {
 		{"%s", "warning message", `{"severity":"WARNING","message":"warning message"}`},
 		{"%v", "", `{"severity":"WARNING"}`},
 	} {
-		logger := SetLogger(buffer, true, false)
+		SetSharedLogger(buffer, true, false)
+		sharedLogger := GetSharedLogger()
+		logger := NewLogger(sharedLogger)
 
 		logger.Warnf(tt.format, tt.args)
 		output := strings.TrimRight(buffer.String(), "\n")

@@ -18,7 +18,7 @@ const buffsize = 1024
 
 func TestStartServer(t *testing.T) {
 	buf := &bytes.Buffer{}
-	rootLogger := zerolog.SetLogger(buf, true, false)
+	zerolog.SetSharedLogger(buf, true, false)
 
 	expected := `{"severity":"INFO","method":"/grpc.testing.TestService/EmptyCall","message":"message"}` + "\n"
 
@@ -32,7 +32,7 @@ func TestStartServer(t *testing.T) {
 		return handler(ctx, req)
 	}
 
-	s := NewServer(rootLogger, "google-sample-project", fn)
+	s := NewServer("google-sample-project", fn)
 	lis := bufconn.Listen(buffsize)
 
 	pb.RegisterTestServiceServer(s.Srv, interop.NewTestServer())

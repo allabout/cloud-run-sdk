@@ -54,10 +54,10 @@ func TestAppHandlerServeHTTP(t *testing.T) {
 
 	for _, tt := range tests {
 		buf := &bytes.Buffer{}
-		rootLogger := zerolog.SetLogger(buf, true, false)
+		zerolog.SetSharedLogger(buf, true, false)
 		got := httptest.NewRecorder()
 
-		Chain(tt.handler, InjectLogger(rootLogger, "sample-google-project")).ServeHTTP(got, httptest.NewRequest(http.MethodGet, "/", nil))
+		Chain(tt.handler, InjectLogger("sample-google-project")).ServeHTTP(got, httptest.NewRequest(http.MethodGet, "/", nil))
 
 		if want, got := tt.wantResp, strings.Trim(got.Body.String(), "\n"); want != got {
 			t.Errorf("want %q, got %q", want, got)
@@ -71,9 +71,9 @@ func TestAppHandlerServeHTTP(t *testing.T) {
 
 func TestNewServerWithLogger(t *testing.T) {
 	buf := &bytes.Buffer{}
-	rootLogger := zerolog.SetLogger(buf, true, false)
+	zerolog.SetSharedLogger(buf, true, false)
 
-	server := NewServerWithLogger(rootLogger, "google-sample-project")
+	server := NewServerWithLogger("google-sample-project")
 
 	var fn = func(ctx context.Context) ([]byte, *AppError) {
 		logger := zerolog.Ctx(ctx)
@@ -105,15 +105,15 @@ func TestNewServerWithLogger(t *testing.T) {
 
 func TestHandleWithRoot(t *testing.T) {
 	buf := &bytes.Buffer{}
-	rootLogger := zerolog.SetLogger(buf, true, false)
+	zerolog.SetSharedLogger(buf, true, false)
 
 	var fn = func(ctx context.Context) ([]byte, *AppError) {
 		zerolog.Ctx(ctx).Info("message")
 		return nil, nil
 	}
 
-	server := NewServerWithLogger(rootLogger, "google-sample-project")
-	server.HandleWithMiddleware("/", AppHandler(fn), InjectLogger(rootLogger, "google-sample-project"))
+	server := NewServerWithLogger("google-sample-project")
+	server.HandleWithMiddleware("/", AppHandler(fn), InjectLogger("google-sample-project"))
 
 	req, err := http.NewRequest(http.MethodGet, "http://"+server.addr+"/", strings.NewReader(""))
 	if err != nil {
@@ -227,9 +227,9 @@ func TestHandle(t *testing.T) {
 
 	for _, tt := range tests {
 		buf := &bytes.Buffer{}
-		rootLogger := zerolog.SetLogger(buf, true, false)
+		zerolog.SetSharedLogger(buf, true, false)
 
-		server := NewServerWithLogger(rootLogger, "google-sample-project")
+		server := NewServerWithLogger("google-sample-project")
 
 		for _, me := range tt.muxEntrys {
 			server.Handle(me.pattern, me.handler)
@@ -271,13 +271,13 @@ func TestHandle(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	buf := &bytes.Buffer{}
-	rootLogger := zerolog.SetLogger(buf, false, false)
+	zerolog.SetSharedLogger(buf, false, false)
 
 	var rootFn = func(ctx context.Context) ([]byte, *AppError) {
 		return []byte("root"), nil
 	}
 
-	server := NewServerWithLogger(rootLogger, "google-sample-project")
+	server := NewServerWithLogger("google-sample-project")
 	server.Handle("/", AppHandler(rootFn))
 
 	var mu sync.Mutex

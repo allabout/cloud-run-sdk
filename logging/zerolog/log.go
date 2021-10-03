@@ -14,10 +14,12 @@ import (
 
 var sharedLogger zerolog.Logger
 
+// SetDefaultSharedLogger is not thread-safe, so should be called only once
 func SetDefaultSharedLogger(debug bool) {
 	SetSharedLogger(os.Stdout, debug, true)
 }
 
+// SetSharedLogger is not thread-safe, so should be called only once
 func SetSharedLogger(w io.Writer, debug, isSourceLocation bool) {
 	var mu sync.Mutex
 

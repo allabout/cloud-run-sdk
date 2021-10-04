@@ -11,7 +11,7 @@ import (
 
 func TestLoggerInterceptor(t *testing.T) {
 	buf := &bytes.Buffer{}
-	rootLogger := zerolog.SetLogger(buf, true, false)
+	zerolog.SetSharedLogger(buf, true, false)
 
 	expected := `{"severity":"INFO","method":"TestService.UnaryMethod","message":"message"}` + "\n"
 
@@ -30,11 +30,8 @@ func TestLoggerInterceptor(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	_, err := LoggerInterceptor(rootLogger, "google-sample-project")(ctx, "xyz", unaryInfo, unaryHandler)
+	_, err := LoggerInterceptor("google-sample-project")(ctx, "xyz", unaryInfo, unaryHandler)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
-
-// func TestAuthInterceptor(t *testing.T) {
-// }

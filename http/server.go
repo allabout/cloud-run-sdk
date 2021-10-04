@@ -66,17 +66,16 @@ func (fn AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type Server struct {
 	addr        string
-	logger      *zerolog.Logger
 	mux         *http.ServeMux
 	middlewares []Middleware
 	srv         *http.Server
 }
 
-func NewServerWithLogger(rootLogger *zerolog.Logger, projectID string, middlewares ...Middleware) *Server {
-	return NewServer(rootLogger, projectID, append([]Middleware{InjectLogger(rootLogger, projectID)}, middlewares...)...)
+func NewServerWithLogger(projectID string, middlewares ...Middleware) *Server {
+	return NewServer(projectID, append([]Middleware{InjectLogger(projectID)}, middlewares...)...)
 }
 
-func NewServer(rootLogger *zerolog.Logger, projectID string, middlewares ...Middleware) *Server {
+func NewServer(projectID string, middlewares ...Middleware) *Server {
 	port, isSet := os.LookupEnv("PORT")
 	if !isSet {
 		port = "8080"
@@ -89,7 +88,6 @@ func NewServer(rootLogger *zerolog.Logger, projectID string, middlewares ...Midd
 
 	return &Server{
 		addr:        hostAddr + ":" + port,
-		logger:      rootLogger,
 		mux:         http.NewServeMux(),
 		middlewares: middlewares,
 	}
@@ -109,6 +107,8 @@ func (s *Server) Handle(path string, h http.Handler) {
 }
 
 func (s *Server) Start(stopCh <-chan struct{}) {
+	sharedLogger := zerolog.GetSharedLogger()
+
 	s.srv = &http.Server{
 		Addr:    s.addr,
 		Handler: s.mux,
@@ -116,18 +116,18 @@ func (s *Server) Start(stopCh <-chan struct{}) {
 
 	go func() {
 		if err := s.srv.ListenAndServe(); err != http.ErrServerClosed {
-			s.logger.Errorf("server closed with error : %v", err)
+			sharedLogger.Error().Msgf("server closed with error : %v", err)
 		}
 	}()
 
 	<-stopCh
-	s.logger.Info("recive SIGTERM or SIGINT")
+	sharedLogger.Info().Msg("recive SIGTERM or SIGINT")
 
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 
 	if err := s.srv.Shutdown(ctx); err != nil {
-		s.logger.Errorf("failed to shutdown HTTP Server : %v", err)
+		sharedLogger.Error().Msgf("failed to shutdown HTTP Server : %v", err)
 	}
 
-	s.logger.Debug("HTTP Server shutdowned")
+	sharedLogger.Debug().Msg("HTTP Server shutdowned")
 }

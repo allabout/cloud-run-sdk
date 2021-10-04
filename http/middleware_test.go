@@ -93,10 +93,10 @@ func TestInjectLogger(t *testing.T) {
 
 	for _, tt := range tests {
 		buf := &bytes.Buffer{}
-		rootLogger := zerolog.SetLogger(buf, tt.debug, true)
+		zerolog.SetSharedLogger(buf, tt.debug, true)
 		resprec := httptest.NewRecorder()
 
-		Chain(tt.appHandler, InjectLogger(rootLogger, "sample-google-project")).ServeHTTP(resprec, tt.requestFunc())
+		Chain(tt.appHandler, InjectLogger("sample-google-project")).ServeHTTP(resprec, tt.requestFunc())
 
 		var entry logEntry
 		if err := json.Unmarshal(buf.Bytes(), &entry); err != nil {

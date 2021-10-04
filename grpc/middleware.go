@@ -7,28 +7,26 @@ import (
 
 	"github.com/allabout/cloud-run-sdk/logging/zerolog"
 	"github.com/allabout/cloud-run-sdk/util"
-	pkgzerolog "github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
-func LoggerInterceptor(l *zerolog.Logger, projectID string) grpc.UnaryServerInterceptor {
+func LoggerInterceptor(projectID string) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		l.ZeroLogger.UpdateContext(func(c pkgzerolog.Context) pkgzerolog.Context {
-			return c.Str("method", info.FullMethod)
-		})
+		sharedLogger := zerolog.GetSharedLogger()
+		logger := zerolog.NewLogger(sharedLogger)
+
+		logger.AddMethod(info.FullMethod)
 
 		if !util.IsCloudRun() {
-			return handler(l.ZeroLogger.WithContext(ctx), req)
+			return handler(logger.WithContext(ctx), req)
 		}
 
 		if traceID := util.GetTraceIDFromMetadata(ctx); traceID != "" {
-			l.ZeroLogger.UpdateContext(func(c pkgzerolog.Context) pkgzerolog.Context {
-				return c.Str("logging.googleapis.com/trace", fmt.Sprintf("projects/%s/traces/%s", projectID, traceID))
-			})
+			logger.AddTraceID(projectID, traceID)
 		}
 
-		return handler(l.ZeroLogger.WithContext(ctx), req)
+		return handler(logger.WithContext(ctx), req)
 	}
 }
 

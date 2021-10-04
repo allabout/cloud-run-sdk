@@ -10,19 +10,17 @@ import (
 )
 
 type Server struct {
-	Srv    *grpc.Server
-	logger *zerolog.Logger
+	Srv *grpc.Server
 }
 
-func NewServer(rootLogger *zerolog.Logger, projectID string, interceptors ...grpc.UnaryServerInterceptor) *Server {
-	interceptors = append([]grpc.UnaryServerInterceptor{LoggerInterceptor(rootLogger, projectID)}, interceptors...)
+func NewServer(projectID string, interceptors ...grpc.UnaryServerInterceptor) *Server {
+	interceptors = append([]grpc.UnaryServerInterceptor{LoggerInterceptor(projectID)}, interceptors...)
 
 	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(interceptors...))
 	reflection.Register(srv)
 
 	return &Server{
-		Srv:    srv,
-		logger: rootLogger,
+		Srv: srv,
 	}
 }
 
@@ -41,17 +39,19 @@ func CreateNetworkListener() (net.Listener, error) {
 }
 
 func (s *Server) Start(lis net.Listener, stopCh <-chan struct{}) {
+	sharedLogger := zerolog.GetSharedLogger()
+
 	go func() {
 		if err := s.Srv.Serve(lis); err != nil {
-			s.logger.Errorf("server closed with error : %v", err)
+			sharedLogger.Error().Msgf("server closed with error : %v", err)
 		}
 	}()
 
 	<-stopCh
 
-	s.logger.Info("recive SIGTERM or SIGINT")
+	sharedLogger.Info().Msg("recive SIGTERM or SIGINT")
 
 	s.Srv.GracefulStop()
 
-	s.logger.Info("gRPC Server shutdowned")
+	sharedLogger.Info().Msg("gRPC Server shutdowned")
 }

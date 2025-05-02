@@ -325,7 +325,7 @@ func TestStart(t *testing.T) {
 	close(stopCh)
 
 	mu.Lock()
-	if want, got := `{"severity":"INFO","message":"recive SIGTERM or SIGINT"}`+"\n", buf.String(); want != got {
+	if want, got := `{"severity":"INFO","message":"receive SIGTERM or SIGINT"}`+"\n", buf.String(); want != got {
 		t.Errorf("want %q, got %q", want, got)
 	}
 	mu.Unlock()

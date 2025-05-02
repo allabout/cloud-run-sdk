@@ -49,9 +49,9 @@ func (s *Server) Start(lis net.Listener, stopCh <-chan struct{}) {
 
 	<-stopCh
 
-	sharedLogger.Info().Msg("recive SIGTERM or SIGINT")
+	sharedLogger.Info().Msg("receive SIGTERM or SIGINT")
 
 	s.Srv.GracefulStop()
 
-	sharedLogger.Info().Msg("gRPC Server shutdowned")
+	sharedLogger.Info().Msg("gRPC Server shutdown")
 }

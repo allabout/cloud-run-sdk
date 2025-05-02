@@ -121,7 +121,7 @@ func (s *Server) Start(stopCh <-chan struct{}) {
 	}()
 
 	<-stopCh
-	sharedLogger.Info().Msg("recive SIGTERM or SIGINT")
+	sharedLogger.Info().Msg("receive SIGTERM or SIGINT")
 
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 
@@ -129,5 +129,5 @@ func (s *Server) Start(stopCh <-chan struct{}) {
 		sharedLogger.Error().Msgf("failed to shutdown HTTP Server : %v", err)
 	}
 
-	sharedLogger.Debug().Msg("HTTP Server shutdowned")
+	sharedLogger.Debug().Msg("HTTP Server shutdown")
 }

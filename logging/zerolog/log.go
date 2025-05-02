@@ -48,7 +48,7 @@ func SetSharedLogger(w io.Writer, debug, isSourceLocation bool) {
 			case zerolog.ErrorLevel:
 				return "ERROR"
 			default:
-				return "UNKOWN"
+				return "UNKNOWN"
 			}
 		}
 		// omit Timestamp because it is automatically insert on Google Cloud Platform

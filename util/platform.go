@@ -82,7 +82,7 @@ func FetchProjectID() (string, error) {
 }
 
 func IsCloudRun() bool {
-	// There is no obvious way to detect whether the app is running on Clodu Run,
+	// There is no obvious way to detect whether the app is running on Cloud Run,
 	// so we speculate from env var which is automatically added by Cloud Run.
 	// ref. https://cloud.google.com/run/docs/reference/container-contract#env-vars
 	// Note: we can't use K_SERVICE or K_REVISION since both are also used in Cloud Functions.
